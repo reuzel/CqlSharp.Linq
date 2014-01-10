@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>CQLSharp.Linq - Linq provider for querying Cassandra using CqlSharp</title>
+    <authors>Joost Reuzel</authors>
+    <owners>Joost Reuzel</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/reuzel/CqlSharp/wiki</projectUrl>
+    <iconUrl>https://raw.github.com/reuzel/CqlSharp/master/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>
+      CqlSharp.Linq contains a Linq to Cql provider on top of CqlSharp allowing Linq queries to be executed against an Apache Cassandra database.
+    </summary>
+    <description>
+      CqlSharp.Linq contains a Linq to Cql provider on top of CqlSharp allowing Linq queries to be executed against an Apache Cassandra database.
+
+      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces. See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
+    </description>
+    <releaseNotes>
+      Version 0.31.0 - Initial version
+      * number chosen to match corresponding CqlSharp package version
+      
+      See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
+    </releaseNotes>
+    <copyright>Copyright 2014 Joost Reuzel</copyright>
+    <tags>Cassandra CQL Linq client database provider nosql net45 CqlSharp</tags>
+</metadata>
+</package>
