@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace CqlSharp.Linq
 {
@@ -25,10 +25,10 @@ namespace CqlSharp.Linq
     public interface ICqlTable
     {
         /// <summary>
-        ///   Gets the column names.
+        ///   Gets the columns.
         /// </summary>
-        /// <value> The column names. </value>
-        Dictionary<MemberInfo, string> ColumnNames { get; }
+        /// <value> The column info elements. </value>
+        IEnumerable<ICqlColumnInfo> Columns { get; }
 
         /// <summary>
         ///   Gets the name of the Table.

@@ -1,4 +1,4 @@
-﻿// CqlSharp.Linq - CqlSharp.Linq
+// CqlSharp.Linq - CqlSharp.Linq
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Translation
 {
     internal class OrderBuilder : BuilderBase
     {

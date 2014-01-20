@@ -1,4 +1,4 @@
-﻿// CqlSharp.Linq - CqlSharp.Linq
+// CqlSharp.Linq - CqlSharp.Linq
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Translation
 {
     /// <summary>
     ///   Converts an expression with identifier expressions to a lambda expression that takes a datareader as input.

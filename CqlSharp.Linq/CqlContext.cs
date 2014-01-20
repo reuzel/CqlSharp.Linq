@@ -21,6 +21,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using CqlSharp.Linq.Expressions;
+using CqlSharp.Linq.Translation;
 
 namespace CqlSharp.Linq
 {

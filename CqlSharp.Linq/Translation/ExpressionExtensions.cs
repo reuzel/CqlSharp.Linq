@@ -1,4 +1,4 @@
-﻿// CqlSharp.Linq - CqlSharp.Linq
+// CqlSharp.Linq - CqlSharp.Linq
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
 
 using System.Linq.Expressions;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Translation
 {
     /// <summary>
     ///   Extensions supporting various parsing tasks

@@ -1,4 +1,4 @@
-﻿// CqlSharp.Linq - CqlSharp.Linq
+// CqlSharp.Linq - CqlSharp.Linq
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Translation
 {
     /// <summary>
     ///   Translates a Linq Expression tree into a Cql expression tree
@@ -56,19 +56,17 @@ namespace CqlSharp.Linq
 
             var selectors = new List<SelectorExpression>();
             var bindings = new List<MemberBinding>();
-            foreach (var column in table.ColumnNames)
+            foreach (var column in table.Columns)
             {
-                var identifierType = column.Key.MemberType == MemberTypes.Property
-                                         ? ((PropertyInfo) column.Key).PropertyType
-                                         : ((FieldInfo) column.Key).FieldType;
+                var identifierType = column.Type;
 
-                var identifierName = column.Value;
+                var identifierName = column.Name;
 
                 var identifier = new IdentifierExpression(identifierType, identifierName);
 
                 selectors.Add(new SelectorExpression(identifier));
 
-                bindings.Add(Expression.Bind(column.Key, identifier));
+                bindings.Add(Expression.Bind(column.MemberInfo, identifier));
             }
 
             var selectClause = new SelectClauseExpression(selectors, false);

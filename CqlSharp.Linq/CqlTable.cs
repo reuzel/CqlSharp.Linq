@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq
 {
@@ -59,9 +58,9 @@ namespace CqlSharp.Linq
         ///   Gets the column names.
         /// </summary>
         /// <value> The column names. </value>
-        public Dictionary<MemberInfo, string> ColumnNames
+        public IEnumerable<ICqlColumnInfo> Columns
         {
-            get { return ObjectAccessor<T>.Instance.ColumnNames; }
+            get { return ObjectAccessor<T>.Instance.Columns; }
         }
 
         /// <summary>
@@ -88,7 +87,7 @@ namespace CqlSharp.Linq
 
         public IEnumerator<T> GetEnumerator()
         {
-            return ((IEnumerable<T>) Provider.Execute(_expression)).GetEnumerator();
+            return ((IEnumerable<T>)Provider.Execute(_expression)).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -98,7 +97,7 @@ namespace CqlSharp.Linq
 
         public Type ElementType
         {
-            get { return typeof (T); }
+            get { return typeof(T); }
         }
 
         public Expression Expression

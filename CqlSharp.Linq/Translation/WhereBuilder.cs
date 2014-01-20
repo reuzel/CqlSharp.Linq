@@ -1,4 +1,4 @@
-﻿// CqlSharp.Linq - CqlSharp.Linq
+// CqlSharp.Linq - CqlSharp.Linq
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Translation
 {
     internal class WhereBuilder : BuilderBase
     {
@@ -178,9 +178,10 @@ namespace CqlSharp.Linq
         protected override Expression VisitConstant(ConstantExpression node)
         {
             //check if it is a valid CQL type
-            if (node.Type.IsSupportedCqlType())
-                return new TermExpression(node.Value);
-
+            if (!node.Type.IsSupportedCqlType())
+                //hmmm, no valid mapping to a term can be made!
+                throw new CqlLinqException(string.Format("Type {0} can't be coverted to a CQL constant, list, set or map", node.Type));
+            
             //check if it is a map
             if (node.Type.Implements(typeof (IDictionary<,>)))
             {
@@ -202,7 +203,7 @@ namespace CqlSharp.Linq
             }
 
             //check if it is a collection (and therefore will be represented as List)
-            if (node.Type.Implements(typeof (IEnumerable<>)))
+            if (node.Type != typeof(string) && node.Type != typeof(byte[]) && node.Type.Implements(typeof (IEnumerable<>)))
             {
                 var terms = new List<TermExpression>();
                 foreach (var elem in (IEnumerable) node.Value)
@@ -211,9 +212,7 @@ namespace CqlSharp.Linq
                 return new TermExpression(node.Type, CqlExpressionType.List, terms);
             }
 
-            //hmmm, no valid mapping to a term can be made!
-            throw new CqlLinqException(string.Format("Type {0} can't be coverted to a CQL constant, list, set or map",
-                                                     node.Type));
+            return new TermExpression(node.Value);
         }
 
         /// <summary>
@@ -224,10 +223,7 @@ namespace CqlSharp.Linq
         /// <exception cref="CqlLinqException"></exception>
         protected override Expression VisitNew(NewExpression node)
         {
-            if (node.Type.IsSupportedCqlType() ||
-                node.Type.Implements(typeof (ISet<>)) ||
-                node.Type.Implements(typeof (IDictionary<,>)) ||
-                node.Type.Implements(typeof (IEnumerable<>)))
+            if (node.Type.IsSupportedCqlType())
                 return base.VisitNew(node);
 
             throw new CqlLinqException(string.Format("Type {0} can not be converted to a valid CQL value", node.Type));
