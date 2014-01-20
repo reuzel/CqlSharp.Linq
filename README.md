@@ -43,8 +43,9 @@ public List<string> GetCommentTexts(Guid blogid)
     {
         var comments = context.Comments
                         .Where(c => c.Blog == blogid)
-                        .Select(c => c.Author + ": " +c.Text)
-                        .ToList();
+                        .Select(c => c.Author + ": " +c.Text);
+                        
+        return comments.ToList();
     }
 }
 ```
