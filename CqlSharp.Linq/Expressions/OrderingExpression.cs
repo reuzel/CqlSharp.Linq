@@ -23,18 +23,18 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class OrderingExpression : Expression
     {
-        private readonly IdentifierExpression _identifier;
+        private readonly SelectorExpression _selector;
         private readonly CqlExpressionType _order;
 
-        public OrderingExpression(IdentifierExpression identifier, CqlExpressionType orderType)
+        public OrderingExpression(SelectorExpression selector, CqlExpressionType orderType)
         {
-            if (identifier == null)
-                throw new ArgumentNullException("identifier");
+            if (selector == null)
+                throw new ArgumentNullException("selector");
 
             if (orderType != CqlExpressionType.OrderAscending && orderType != CqlExpressionType.OrderDescending)
                 throw new ArgumentException("ExpressionType must be OrderAscending or OrderDescending", "orderType");
 
-            _identifier = identifier;
+            _selector = selector;
             _order = orderType;
         }
 
@@ -45,12 +45,12 @@ namespace CqlSharp.Linq.Expressions
 
         public override Type Type
         {
-            get { return _identifier.Type; }
+            get { return _selector.Type; }
         }
 
-        public IdentifierExpression Identifier
+        public SelectorExpression Selector
         {
-            get { return _identifier; }
+            get { return _selector; }
         }
 
         protected override Expression Accept(ExpressionVisitor visitor)
@@ -67,9 +67,9 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            var identifier = visitor.Visit(_identifier);
+            var identifier = visitor.Visit(_selector);
 
-            return identifier.Equals(_identifier) ? _identifier : identifier;
+            return identifier.Equals(_selector) ? _selector : identifier;
         }
     }
 }

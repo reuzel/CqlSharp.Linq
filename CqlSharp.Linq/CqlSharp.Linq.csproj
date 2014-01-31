@@ -50,11 +50,9 @@
     <Compile Include="CqlTable.cs" />
     <Compile Include="Expressions\CqlExpressionType.cs" />
     <Compile Include="Expressions\CqlExpressionVisitor.cs" />
-    <Compile Include="Expressions\Functions.cs" />
-    <Compile Include="Expressions\IdentifierExpression.cs" />
     <Compile Include="Expressions\OrderingExpression.cs" />
     <Compile Include="Expressions\ProjectionExpression.cs" />
-    <Compile Include="Expressions\ReadOnlyExtensions.cs" />
+    <Compile Include="Expressions\ExpressionCollectionExtensions.cs" />
     <Compile Include="Expressions\RelationExpression.cs" />
     <Compile Include="Expressions\ResultFunction.cs" />
     <Compile Include="Expressions\SelectClauseExpression.cs" />

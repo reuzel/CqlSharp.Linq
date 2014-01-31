@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace CqlSharp.Linq.Expressions
 {
@@ -26,73 +27,32 @@ namespace CqlSharp.Linq.Expressions
     internal class SelectorExpression : Expression
     {
         private readonly ReadOnlyCollection<SelectorExpression> _arguments;
-        private readonly Functions _function;
-        private readonly IdentifierExpression _identifier;
+        private readonly MethodInfo _function;
+        private readonly string _identifier;
         private readonly CqlExpressionType _selectorType;
         private readonly Type _type;
 
-        public SelectorExpression(IdentifierExpression identifier)
+        public SelectorExpression(string identifier, Type type)
         {
             if (identifier == null) throw new ArgumentNullException("identifier");
 
             _identifier = identifier;
             _selectorType = CqlExpressionType.IdentifierSelector;
-            _type = identifier.Type;
-        }
-
-        public SelectorExpression(CqlExpressionType writeTimeOrTtl, IdentifierExpression identifier)
-        {
-            switch (writeTimeOrTtl)
-            {
-                case CqlExpressionType.TtlSelector:
-                    _type = typeof (int);
-                    break;
-                case CqlExpressionType.WriteTimeSelector:
-                    _type = typeof (DateTime);
-                    break;
-                default:
-                    throw new ArgumentException("ExpressionType must be TTL IdentifierSelector or WriteTime selector");
-            }
-
-            _selectorType = writeTimeOrTtl;
-            _identifier = identifier;
-        }
-
-        public SelectorExpression(Functions function, IList<SelectorExpression> arguments)
-        {
-            if (arguments == null) throw new ArgumentNullException("arguments");
-
-            switch (function)
-            {
-                case Functions.UnixTimestampOf:
-                    _type = typeof (long);
-                    break;
-                case Functions.DateOf:
-                case Functions.Now:
-                    _type = typeof (DateTime);
-                    break;
-                case Functions.MinTimeUuid:
-                case Functions.MaxTimeUuid:
-                    _type = typeof (Guid);
-                    break;
-                case Functions.Token:
-                    _type = typeof (object); //depends on used partitioner
-                    break;
-            }
-            _function = function;
-            _arguments = arguments.AsReadOnly();
-        }
-
-        private SelectorExpression(Type type, CqlExpressionType selectorType, IdentifierExpression identifier,
-                                   Functions function, IList<SelectorExpression> arguments)
-        {
             _type = type;
-            _selectorType = selectorType;
-            _identifier = identifier;
-            _function = function;
-            _arguments = arguments.AsReadOnly();
         }
 
+        public SelectorExpression(MethodInfo function, IEnumerable<SelectorExpression> arguments)
+        {
+            if (function.DeclaringType != typeof(CqlFunctions))
+                throw new ArgumentException("function must be a valid Cql Function");
+
+            _function = function;
+            _arguments = arguments.AsReadOnly();
+            _type = function.ReturnType;
+            _selectorType = CqlExpressionType.FunctionSelector;
+        }
+
+        public int Ordinal { get; set; }
 
         public override Type Type
         {
@@ -101,15 +61,15 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) _selectorType; }
+            get { return (ExpressionType)_selectorType; }
         }
 
-        public IdentifierExpression Identifier
+        public string Identifier
         {
             get { return _identifier; }
         }
 
-        public Functions Function
+        public MethodInfo Function
         {
             get { return _function; }
         }
@@ -133,28 +93,16 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            bool changed = false;
-
-            IdentifierExpression identifier = null;
-            if (_identifier != null)
-            {
-                identifier = (IdentifierExpression) visitor.Visit(_identifier);
-                changed |= !identifier.Equals(_identifier);
-            }
-
-            SelectorExpression[] args = null;
             if (_arguments != null)
             {
-                int count = _arguments.Count;
-                args = new SelectorExpression[count];
-                for (int i = 0; i < count; i++)
-                {
-                    args[i] = (SelectorExpression) visitor.Visit(_arguments[i]);
-                    changed |= args[i] != _arguments[i];
-                }
+                bool changed = false;
+                var args = _arguments.VisitAll(visitor, out changed);
+
+                if (changed)
+                    return new SelectorExpression(_function, args);
             }
 
-            return changed ? new SelectorExpression(_type, _selectorType, identifier, _function, args) : this;
+            return this;
         }
     }
 }

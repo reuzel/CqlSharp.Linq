@@ -34,7 +34,7 @@ namespace CqlSharp.Linq.Translation
             var key = Visit(lambda.Body);
 
             //check if we are dealing with a column
-            if ((CqlExpressionType) key.NodeType != CqlExpressionType.Identifier)
+            if ((CqlExpressionType) key.NodeType != CqlExpressionType.IdentifierSelector)
                 throw new CqlLinqException("Select key in OrderBy does not map to table column");
 
             //get a reference to the select clause
@@ -42,7 +42,7 @@ namespace CqlSharp.Linq.Translation
 
             //add the ordering to the list of orderBy clauses
             var ordering = new List<OrderingExpression>(select.OrderBy);
-            ordering.Add(new OrderingExpression((IdentifierExpression) key,
+            ordering.Add(new OrderingExpression((SelectorExpression) key,
                                                 ascending
                                                     ? CqlExpressionType.OrderAscending
                                                     : CqlExpressionType.OrderDescending));

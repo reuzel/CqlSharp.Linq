@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace CqlSharp.Linq.Expressions
 {
@@ -27,7 +28,7 @@ namespace CqlSharp.Linq.Expressions
     internal class TermExpression : Expression
     {
         private readonly ReadOnlyDictionary<TermExpression, TermExpression> _dictionaryTerms;
-        private readonly Functions _function;
+        private readonly MethodInfo _function;
         private readonly CqlExpressionType _termType;
         private readonly ReadOnlyCollection<TermExpression> _terms;
         private readonly Type _type;
@@ -46,90 +47,51 @@ namespace CqlSharp.Linq.Expressions
             _value = value;
         }
 
-        public TermExpression(Type type, CqlExpressionType termType, IList<TermExpression> terms)
+        public TermExpression(IList<TermExpression> terms)
         {
-            if (type == null) throw new ArgumentNullException("type");
+            if (terms == null || terms.Count == 0)
+                throw new CqlLinqException("Empty lists are not allowed");
 
-            if (termType != CqlExpressionType.List && termType != CqlExpressionType.Set)
-                throw new ArgumentException("Type of term must be Set or List");
-
-            _type = type;
+            _type = typeof(IList<>).MakeGenericType(terms[0].Type);
             _terms = terms.AsReadOnly();
-            _termType = termType;
+            _termType = CqlExpressionType.List;
         }
 
-        public TermExpression(Type type, IDictionary<TermExpression, TermExpression> terms)
+        public TermExpression(ISet<TermExpression> terms)
         {
-            if (type == null) throw new ArgumentNullException("type");
+            if (terms == null || terms.Count == 0)
+                throw new CqlLinqException("Empty lists are not allowed");
 
-            _type = type;
+            _type = typeof(ISet<>).MakeGenericType(terms.First().Type);
+            _terms = terms.ToList().AsReadOnly();
+            _termType = CqlExpressionType.Set;
+        }
+
+        public TermExpression(IDictionary<TermExpression, TermExpression> terms)
+        {
+            if (terms == null || terms.Count == 0)
+                throw new CqlLinqException("Empty dictionaries are not allowed");
+
+            var firstElement = terms.First();
+            _type = typeof(IDictionary<,>).MakeGenericType(firstElement.Key.Type, firstElement.Value.Type);
             _dictionaryTerms = terms.AsReadOnly();
             _termType = CqlExpressionType.Map;
         }
 
-        public TermExpression(Functions function, IList<TermExpression> arguments)
+        public TermExpression(MethodInfo function, IEnumerable<TermExpression> arguments)
         {
             if (arguments == null)
                 throw new ArgumentNullException("arguments");
 
-            _terms = new ReadOnlyCollection<TermExpression>(arguments);
             _function = function;
+            _terms = arguments.AsReadOnly();
             _termType = CqlExpressionType.Function;
-            switch (function)
-            {
-                case Functions.Token:
-                    _type = typeof (object); //depends on partitioner
-                    break;
-                case Functions.DateOf:
-                    _type = typeof (DateTime);
-                    if (_terms.Single().Type != typeof (Guid))
-                        throw new ArgumentException("terms should consist of a single GUID", "arguments");
-                    break;
-
-                case Functions.MinTimeUuid:
-                case Functions.MaxTimeUuid:
-                    _type = typeof (Guid);
-                    if (_terms.Single().Type != typeof (DateTime))
-                        throw new ArgumentException("terms should consist of a single DateTime", "arguments");
-                    break;
-
-                case Functions.UnixTimestampOf:
-                    _type = typeof (long);
-                    if (_terms.Single().Type != typeof (Guid))
-                        throw new ArgumentException("terms should consist of a single GUID", "arguments");
-                    break;
-
-                case Functions.Now:
-                    _type = typeof (Guid);
-                    if (_terms.Count() != 0)
-                        throw new ArgumentException("terms should not contain any value", "arguments");
-
-                    break;
-
-                default:
-                    throw new ArgumentException("Unknown function!", "function");
-            }
-        }
-
-        private TermExpression(Type type, Functions function, IList<TermExpression> terms,
-                               IDictionary<TermExpression, TermExpression> dictionary)
-        {
-            if (type == null) throw new ArgumentNullException("type");
-            if (terms == null && dictionary == null)
-                throw new ArgumentException("Either terms or dictionary must be set");
-
-            _type = type;
-            _function = function;
-
-            if (terms != null)
-                _terms = terms.AsReadOnly();
-            else
-                _dictionaryTerms = dictionary.AsReadOnly();
+            _type = function.ReturnType;
         }
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) _termType; }
+            get { return (ExpressionType)_termType; }
         }
 
         public object Value
@@ -142,7 +104,7 @@ namespace CqlSharp.Linq.Expressions
             get { return _type; }
         }
 
-        public Functions Function
+        public MethodInfo Function
         {
             get { return _function; }
         }
@@ -169,40 +131,26 @@ namespace CqlSharp.Linq.Expressions
             return base.Accept(visitor);
         }
 
+        private TermExpression(TermExpression original, IEnumerable<TermExpression> terms, IDictionary<TermExpression, TermExpression> dictTerms)
+        {
+            _function = original.Function;
+            _termType = original._termType;
+            _type = original.Type;
+            _value = original.Value;
+            _terms = terms.AsReadOnly();
+            _dictionaryTerms = dictTerms.AsReadOnly();
+        }
+
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            if (_terms != null)
-            {
-                bool changed = false;
+            bool changedTerms = false;
+            var terms = _terms.VisitAll(visitor, out changedTerms);
 
-                TermExpression[] terms = null;
-                if (_terms != null)
-                {
-                    int count = _terms.Count;
-                    terms = new TermExpression[count];
-                    for (int i = 0; i < count; i++)
-                    {
-                        terms[i] = (TermExpression) visitor.Visit(_terms[i]);
-                        changed |= terms[i] != _terms[i];
-                    }
-                }
+            bool changedDictTerms = false;
+            var dictTerms = _dictionaryTerms.VisitAll(visitor, out changedDictTerms);
 
-                Dictionary<TermExpression, TermExpression> dictionaryTerms = null;
-                if (_dictionaryTerms != null)
-                {
-                    dictionaryTerms = new Dictionary<TermExpression, TermExpression>();
-                    foreach (var pair in _dictionaryTerms)
-                    {
-                        var key = (TermExpression) visitor.Visit(pair.Key);
-                        var value = (TermExpression) visitor.Visit(pair.Value);
-                        changed |= (pair.Key != key) || (pair.Value != value);
-                        dictionaryTerms.Add(key, value);
-                    }
-                }
-
-                if (changed)
-                    return new TermExpression(_type, _function, terms, dictionaryTerms);
-            }
+            if (changedTerms || changedDictTerms)
+                return new TermExpression(this, terms, dictTerms);
 
             return this;
         }

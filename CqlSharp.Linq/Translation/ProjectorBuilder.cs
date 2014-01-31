@@ -13,42 +13,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System.Linq.Expressions;
 using System.Reflection;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Translation
 {
     /// <summary>
-    ///   Converts an expression with identifier expressions to a lambda expression that takes a datareader as input.
+    ///   Converts an expression with selector expressions to a lambda expression that takes a datareader as input.
     /// </summary>
     internal class ProjectorBuilder : CqlExpressionVisitor
     {
-        private static readonly PropertyInfo Indexer = typeof (CqlDataReader).GetProperty("Item",
-                                                                                          new[] {typeof (string)});
+        private static readonly PropertyInfo Indexer = typeof(CqlDataReader).GetProperty("Item",
+                                                                                          new[] { typeof(int) });
 
         private ParameterExpression _reader;
 
         public LambdaExpression BuildProjector(Expression expression)
         {
-            _reader = Expression.Parameter(typeof (CqlDataReader), "cqlDataReader");
+            _reader = Expression.Parameter(typeof(CqlDataReader), "cqlDataReader");
             Expression expr = Visit(expression);
             return Expression.Lambda(expr, _reader);
         }
 
-        public override Expression VisitIdentifier(IdentifierExpression identifier)
+        public override Expression VisitSelector(SelectorExpression selector)
         {
-            var value = Expression.MakeIndex(_reader, Indexer, new[] {Expression.Constant(identifier.Name)});
+            var value = Expression.MakeIndex(_reader, Indexer, new[] { Expression.Constant(selector.Ordinal) });
 
-            if (identifier.Type.IsValueType)
+            if (selector.Type.IsValueType)
             {
                 return Expression.Condition(
                     Expression.Equal(value, Expression.Constant(null)),
-                    Expression.Default(identifier.Type),
-                    Expression.Convert(value, identifier.Type));
+                    Expression.Default(selector.Type),
+                    Expression.Convert(value, selector.Type));
             }
 
-            return Expression.Convert(value, identifier.Type);
+            return Expression.Convert(value, selector.Type);
         }
     }
 }

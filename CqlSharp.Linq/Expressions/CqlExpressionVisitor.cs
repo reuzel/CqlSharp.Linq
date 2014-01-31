@@ -32,9 +32,9 @@ namespace CqlSharp.Linq.Expressions
             return base.VisitExtension(selectStatement);
         }
 
-        public virtual Expression VisitSelector(SelectorExpression node)
+        public virtual Expression VisitSelector(SelectorExpression selector)
         {
-            return base.VisitExtension(node);
+            return base.VisitExtension(selector);
         }
 
         public virtual Expression VisitOrdering(OrderingExpression node)
@@ -60,16 +60,6 @@ namespace CqlSharp.Linq.Expressions
         public virtual Expression VisitTerm(TermExpression node)
         {
             return base.VisitExtension(node);
-        }
-
-        /// <summary>
-        ///   Visits the identifier.
-        /// </summary>
-        /// <param name="identifier"> The node. </param>
-        /// <returns> </returns>
-        public virtual Expression VisitIdentifier(IdentifierExpression identifier)
-        {
-            return base.VisitExtension(identifier);
         }
 
         /// <summary>

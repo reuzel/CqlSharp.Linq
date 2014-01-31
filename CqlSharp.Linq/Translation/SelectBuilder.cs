@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Translation
 {
@@ -25,7 +26,7 @@ namespace CqlSharp.Linq.Translation
         public ProjectionExpression UpdateSelect(ProjectionExpression projection, Expression selectExpression)
         {
             //get the lambda expression of the select method
-            var lambda = (LambdaExpression) selectExpression.StripQuotes();
+            var lambda = (LambdaExpression)selectExpression.StripQuotes();
 
             //map the arguments of the lambda expression to the existing projection
             MapLambdaParameters(lambda, projection.Projection);
@@ -50,25 +51,41 @@ namespace CqlSharp.Linq.Translation
             return new ProjectionExpression(newSelect, newProjection, projection.ResultFunction);
         }
 
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            Type classType = node.Method.DeclaringType;
+            if (classType == typeof(CqlFunctions))
+            {
+                bool changed;
+                var args = node.Arguments.VisitAll(this, out changed);
+                if(args.Any(arg => arg.NodeType != (ExpressionType)CqlExpressionType.IdentifierSelector))
+                    throw new CqlLinqException(string.Format("Argument to {0} function is not recognized as a column identifier", node.Method.Name));
+
+                return new SelectorExpression(node.Method, args.Cast<SelectorExpression>());
+            }
+
+            return base.VisitMethodCall(node);
+        }
+
         #region Nested type: ColumnFinder
 
         /// <summary>
-        ///   finds used column identifiers for the select clause
+        ///   finds used selectors for the select clause
         /// </summary>
         private class ColumnFinder : CqlExpressionVisitor
         {
-            private readonly HashSet<SelectorExpression> _identifiers = new HashSet<SelectorExpression>();
+            private readonly HashSet<SelectorExpression> _selectors = new HashSet<SelectorExpression>();
 
             public IEnumerable<SelectorExpression> FindColumns(Expression expression)
             {
                 Visit(expression);
-                return _identifiers;
+                return _selectors;
             }
 
-            public override Expression VisitIdentifier(IdentifierExpression identifier)
+            public override Expression VisitSelector(SelectorExpression selector)
             {
-                _identifiers.Add(new SelectorExpression(identifier));
-                return identifier;
+                _selectors.Add(selector);
+                return selector;
             }
         }
 

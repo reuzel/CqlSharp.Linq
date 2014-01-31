@@ -62,9 +62,9 @@ namespace CqlSharp.Linq.Translation
 
                 var identifierName = column.Name;
 
-                var identifier = new IdentifierExpression(identifierType, identifierName);
+                var identifier = new SelectorExpression(identifierName, identifierType);
 
-                selectors.Add(new SelectorExpression(identifier));
+                selectors.Add(identifier);
 
                 bindings.Add(Expression.Bind(column.MemberInfo, identifier));
             }
@@ -225,8 +225,7 @@ namespace CqlSharp.Linq.Translation
                                                                        source.Select.WhereClause, null,
                                                                        source.Select.Limit);
 
-                            return new ProjectionExpression(select, new IdentifierExpression(typeof (int), "count"),
-                                                            Enumerable.Single);
+                            return new ProjectionExpression(select, new SelectorExpression("count",typeof (int)), Enumerable.Single);
                         }
 
 
@@ -250,7 +249,7 @@ namespace CqlSharp.Linq.Translation
                                                                        source.Select.WhereClause, null,
                                                                        source.Select.Limit);
 
-                            return new ProjectionExpression(select, new IdentifierExpression(typeof (long), "count"),
+                            return new ProjectionExpression(select, new SelectorExpression("count", typeof(long)),
                                                             Enumerable.Single);
                         }
 

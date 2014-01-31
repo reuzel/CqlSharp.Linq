@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Translation
 {
@@ -29,7 +29,7 @@ namespace CqlSharp.Linq.Translation
         public ProjectionExpression BuildWhere(ProjectionExpression projection, Expression whereClause)
         {
             //get the lambda expression of the select method
-            var lambda = (LambdaExpression) whereClause.StripQuotes();
+            var lambda = (LambdaExpression)whereClause.StripQuotes();
 
             //map the arguments of the lambda expression to the existing projection
             MapLambdaParameters(lambda, projection.Projection);
@@ -56,7 +56,7 @@ namespace CqlSharp.Linq.Translation
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             Type classType = node.Method.DeclaringType;
-            if (classType == typeof (Enumerable) || classType == typeof (Queryable))
+            if (classType == typeof(Enumerable) || classType == typeof(Queryable))
             {
                 Expression left = Visit(node.Arguments[0]);
                 Expression right = Visit(node.Arguments[1]);
@@ -71,7 +71,7 @@ namespace CqlSharp.Linq.Translation
                 }
             }
 
-            if (node.Method.DeclaringType.Implements(typeof (IEnumerable<>)))
+            if (node.Method.DeclaringType.Implements(typeof(IEnumerable<>)))
             {
                 Expression left = Visit(node.Object);
                 Expression right = Visit(node.Arguments[0]);
@@ -87,7 +87,7 @@ namespace CqlSharp.Linq.Translation
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
-            var comparison = (BinaryExpression) base.VisitBinary(node);
+            var comparison = (BinaryExpression)base.VisitBinary(node);
 
             switch (comparison.NodeType)
             {
@@ -127,47 +127,28 @@ namespace CqlSharp.Linq.Translation
         private Expression CreateRelation(Expression left, Expression right, CqlExpressionType compareOp,
                                           CqlExpressionType compareOpSwitched)
         {
-            var leftType = (CqlExpressionType) left.NodeType;
-            var rightType = (CqlExpressionType) right.NodeType;
-            bool shuffled = false;
 
-            //make sure identifier is left
-            if (rightType == CqlExpressionType.Identifier)
+            bool shuffled = false;
+            if (left.GetType() != typeof(SelectorExpression))
             {
+                if (right.GetType() != typeof(SelectorExpression))
+                    throw new CqlLinqException("Can't determine the column/token selector for the CQL where relation");
+
                 //swap expressions
                 Expression temp = left;
                 left = right;
                 right = temp;
 
-                //swap type
-                rightType = leftType;
-                leftType = CqlExpressionType.Identifier;
-
-                //indicate shuffling
                 shuffled = true;
             }
 
-            if (leftType != CqlExpressionType.Identifier)
-                throw new CqlLinqException("Can't determine the (column) identfier for the CQL where relation");
+            if (right.GetType() != typeof(TermExpression))
+                throw new CqlLinqException("Could not detect term in the CQL where relation");
 
-            if (rightType == CqlExpressionType.Constant)
-            {
-                var relation = new RelationExpression((IdentifierExpression) left,
-                                                      shuffled ? compareOpSwitched : compareOp, (TermExpression) right);
-                _relations.Add(relation);
-                return Expression.Constant(true);
-            }
+            _relations.Add(new RelationExpression((SelectorExpression)left, shuffled ? compareOp : compareOpSwitched,
+                                                  (TermExpression)right));
 
-            if (compareOp == CqlExpressionType.In &&
-                (rightType == CqlExpressionType.Set || rightType == CqlExpressionType.List))
-            {
-                var relation = new RelationExpression((IdentifierExpression) left, ((TermExpression) right).Terms);
-                _relations.Add(relation);
-                return Expression.Constant(true);
-            }
-
-            throw new CqlLinqException(
-                "Error creating relation. Not able to detect the correct term to create the relation with.");
+            return Expression.Constant(true);
         }
 
         /// <summary>
@@ -181,35 +162,35 @@ namespace CqlSharp.Linq.Translation
             if (!node.Type.IsSupportedCqlType())
                 //hmmm, no valid mapping to a term can be made!
                 throw new CqlLinqException(string.Format("Type {0} can't be coverted to a CQL constant, list, set or map", node.Type));
-            
+
             //check if it is a map
-            if (node.Type.Implements(typeof (IDictionary<,>)))
+            if (node.Type.Implements(typeof(IDictionary<,>)))
             {
                 var terms = new Dictionary<TermExpression, TermExpression>();
-                foreach (DictionaryEntry elem in (IDictionary) node.Value)
+                foreach (DictionaryEntry elem in (IDictionary)node.Value)
                     terms.Add(new TermExpression(elem.Key), new TermExpression(elem.Value));
 
-                return new TermExpression(node.Type, terms);
+                return new TermExpression(terms);
             }
 
             //check if it is a set
-            if (node.Type.Implements(typeof (ISet<>)))
+            if (node.Type.Implements(typeof(ISet<>)))
             {
-                var terms = new List<TermExpression>();
-                foreach (var elem in (IEnumerable) node.Value)
+                var terms = new HashSet<TermExpression>();
+                foreach (var elem in (IEnumerable)node.Value)
                     terms.Add(new TermExpression(elem));
 
-                return new TermExpression(node.Type, CqlExpressionType.Set, terms);
+                return new TermExpression(terms);
             }
 
             //check if it is a collection (and therefore will be represented as List)
-            if (node.Type != typeof(string) && node.Type != typeof(byte[]) && node.Type.Implements(typeof (IEnumerable<>)))
+            if (node.Type != typeof(string) && node.Type != typeof(byte[]) && node.Type.Implements(typeof(IEnumerable<>)))
             {
                 var terms = new List<TermExpression>();
-                foreach (var elem in (IEnumerable) node.Value)
+                foreach (var elem in (IEnumerable)node.Value)
                     terms.Add(new TermExpression(elem));
 
-                return new TermExpression(node.Type, CqlExpressionType.List, terms);
+                return new TermExpression(terms);
             }
 
             return new TermExpression(node.Value);

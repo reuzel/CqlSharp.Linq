@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -20,7 +21,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Text;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Translation
 {
@@ -96,7 +96,7 @@ namespace CqlSharp.Linq.Translation
             base.VisitSelectClause(selectClauseExpression);
 
             string translation;
-            switch ((CqlExpressionType) selectClauseExpression.NodeType)
+            switch ((CqlExpressionType)selectClauseExpression.NodeType)
             {
                 case CqlExpressionType.SelectAll:
                     translation = "*";
@@ -123,20 +123,14 @@ namespace CqlSharp.Linq.Translation
 
             string value;
 
-            switch ((CqlExpressionType) selector.NodeType)
+            switch ((CqlExpressionType)selector.NodeType)
             {
                 case CqlExpressionType.IdentifierSelector:
-                    value = _translations[selector.Identifier];
-                    break;
-                case CqlExpressionType.TtlSelector:
-                    value = string.Format("TTL({0})", _translations[selector.Identifier]);
-                    break;
-                case CqlExpressionType.WriteTimeSelector:
-                    value = string.Format("WRITETIME({0})", _translations[selector.Identifier]);
+                    value = "'" + selector.Identifier + "'";
                     break;
                 case CqlExpressionType.FunctionSelector:
                     var builder = new StringBuilder();
-                    builder.Append(selector.Function.ToString());
+                    builder.Append(selector.Function.Name);
                     builder.Append("(");
                     var argsAsString = selector.Arguments.Select(arg => _translations[arg]);
                     builder.Append(string.Join(",", argsAsString));
@@ -157,73 +151,33 @@ namespace CqlSharp.Linq.Translation
             base.VisitRelation(relation);
 
             var builder = new StringBuilder();
+            builder.Append(_translations[relation.Selector]);
 
-            switch ((CqlExpressionType) relation.NodeType)
+            switch ((CqlExpressionType)relation.NodeType)
             {
                 case CqlExpressionType.Equal:
-                    builder.Append(_translations[relation.Identifiers.Single()]);
                     builder.Append("=");
-                    builder.Append(_translations[relation.Terms.Single()]);
+                    builder.Append(_translations[relation.Term]);
                     break;
                 case CqlExpressionType.LargerEqualThan:
-                    builder.Append(_translations[relation.Identifiers.Single()]);
                     builder.Append(">=");
-                    builder.Append(_translations[relation.Terms.Single()]);
+                    builder.Append(_translations[relation.Term]);
                     break;
                 case CqlExpressionType.LargerThan:
-                    builder.Append(_translations[relation.Identifiers.Single()]);
                     builder.Append(">");
-                    builder.Append(_translations[relation.Terms.Single()]);
+                    builder.Append(_translations[relation.Term]);
                     break;
                 case CqlExpressionType.SmallerEqualThan:
-                    builder.Append(_translations[relation.Identifiers.Single()]);
                     builder.Append("<=");
-                    builder.Append(_translations[relation.Terms.Single()]);
+                    builder.Append(_translations[relation.Term]);
                     break;
                 case CqlExpressionType.SmallerThan:
-                    builder.Append(_translations[relation.Identifiers.Single()]);
                     builder.Append("<");
-                    builder.Append(_translations[relation.Terms.Single()]);
-                    break;
-                case CqlExpressionType.TokenEqual:
-                    builder.Append("token(");
-                    builder.Append(string.Join(",", relation.Identifiers.Select(id => _translations[id])));
-                    builder.Append(")");
-                    builder.Append("=");
-                    builder.Append(_translations[relation.Terms.Single()]);
-                    break;
-                case CqlExpressionType.TokenLargerEqualThan:
-                    builder.Append("token(");
-                    builder.Append(string.Join(",", relation.Identifiers.Select(id => _translations[id])));
-                    builder.Append(")");
-                    builder.Append(">=");
-                    builder.Append(_translations[relation.Terms.Single()]);
-                    break;
-                case CqlExpressionType.TokenLargerThan:
-                    builder.Append("token(");
-                    builder.Append(string.Join(",", relation.Identifiers.Select(id => _translations[id])));
-                    builder.Append(")");
-                    builder.Append(">");
-                    builder.Append(_translations[relation.Terms.Single()]);
-                    break;
-                case CqlExpressionType.TokenSmallerEqualThan:
-                    builder.Append("token(");
-                    builder.Append(string.Join(",", relation.Identifiers.Select(id => _translations[id])));
-                    builder.Append(")");
-                    builder.Append("<=");
-                    builder.Append(_translations[relation.Terms.Single()]);
-                    break;
-                case CqlExpressionType.TokenSmallerThan:
-                    builder.Append("token(");
-                    builder.Append(string.Join(",", relation.Identifiers.Select(id => _translations[id])));
-                    builder.Append(")");
-                    builder.Append("<");
-                    builder.Append(_translations[relation.Terms.Single()]);
+                    builder.Append(_translations[relation.Term]);
                     break;
                 case CqlExpressionType.In:
-                    builder.Append(_translations[relation.Identifiers.Single()]);
                     builder.Append(" IN (");
-                    builder.Append(string.Join(",", relation.Terms.Select(term => _translations[term])));
+                    builder.Append(string.Join(",", relation.Term.Terms.Select(term => _translations[term])));
                     builder.Append(")");
                     break;
                 default:
@@ -242,7 +196,7 @@ namespace CqlSharp.Linq.Translation
 
             var builder = new StringBuilder();
 
-            switch ((CqlExpressionType) term.NodeType)
+            switch ((CqlExpressionType)term.NodeType)
             {
                 case CqlExpressionType.Variable:
                     builder.Append("?");
@@ -311,11 +265,11 @@ namespace CqlSharp.Linq.Translation
                 case CqlType.Text:
                 case CqlType.Varchar:
                 case CqlType.Ascii:
-                    var str = (string) value;
+                    var str = (string)value;
                     return "'" + str.Replace("'", "''") + "'";
 
                 case CqlType.Boolean:
-                    return ((bool) value) ? "true" : "false";
+                    return ((bool)value) ? "true" : "false";
 
                 case CqlType.Decimal:
                 case CqlType.Double:
@@ -330,17 +284,17 @@ namespace CqlSharp.Linq.Translation
 
                 case CqlType.Timeuuid:
                 case CqlType.Uuid:
-                    return ((Guid) value).ToString("D");
+                    return ((Guid)value).ToString("D");
 
                 case CqlType.Varint:
-                    return ((BigInteger) value).ToString("D");
+                    return ((BigInteger)value).ToString("D");
 
                 case CqlType.Timestamp:
-                    long timestamp = ((DateTime) value).ToTimestamp();
+                    long timestamp = ((DateTime)value).ToTimestamp();
                     return string.Format("{0:D}", timestamp);
 
                 case CqlType.Blob:
-                    return ((byte[]) value).ToHex("0x");
+                    return ((byte[])value).ToHex("0x");
 
                 default:
                     throw new CqlLinqException("Unable to translate term to a string representation");
@@ -351,13 +305,13 @@ namespace CqlSharp.Linq.Translation
         {
             string value;
 
-            switch ((CqlExpressionType) ordering.NodeType)
+            switch ((CqlExpressionType)ordering.NodeType)
             {
                 case CqlExpressionType.OrderDescending:
-                    value = _translations[ordering.Identifier] + " DESC";
+                    value = _translations[ordering.Selector] + " DESC";
                     break;
                 case CqlExpressionType.OrderAscending:
-                    value = _translations[ordering.Identifier] + " ASC";
+                    value = _translations[ordering.Selector] + " ASC";
                     break;
                 default:
                     throw new CqlLinqException("Unexpected ordering type encountered: " + ordering.NodeType.ToString());
@@ -366,13 +320,6 @@ namespace CqlSharp.Linq.Translation
             _translations[ordering] = value;
 
             return ordering;
-        }
-
-        public override Expression VisitIdentifier(IdentifierExpression identifier)
-        {
-            base.VisitIdentifier(identifier);
-            _translations[identifier] = string.Format("'{0}'", identifier.Name);
-            return identifier;
         }
     }
 }

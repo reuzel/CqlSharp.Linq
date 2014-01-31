@@ -14,8 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 
 namespace CqlSharp.Linq.Expressions
@@ -25,115 +23,50 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class RelationExpression : Expression
     {
-        private readonly ReadOnlyCollection<IdentifierExpression> _identifiers;
+        private readonly SelectorExpression _selector;
         private readonly CqlExpressionType _relation;
-        private readonly ReadOnlyCollection<TermExpression> _terms;
+        private readonly TermExpression _term;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="RelationExpression" /> class.
-        ///   Used for any non token related relation
+        /// Initializes a new instance of the <see cref="RelationExpression" /> class.
         /// </summary>
-        /// <param name="identifier"> The identifier. </param>
-        /// <param name="relation"> The relation. </param>
-        /// <param name="term"> The term. </param>
-        /// <exception cref="System.ArgumentNullException">identifier
-        ///   or
-        ///   term</exception>
-        /// <exception cref="System.ArgumentException">The provided ExpressionType is not a valid relation</exception>
-        public RelationExpression(IdentifierExpression identifier, CqlExpressionType relation, TermExpression term)
+        /// <param name="selector">The selector.</param>
+        /// <param name="relation">The relation.</param>
+        /// <param name="term">The term.</param>
+        /// <exception cref="System.ArgumentNullException">selector
+        /// or
+        /// term</exception>
+        public RelationExpression(SelectorExpression selector, CqlExpressionType relation, TermExpression term)
         {
-            if (identifier == null)
-                throw new ArgumentNullException("identifier");
+            if (selector == null) throw new ArgumentNullException("selector");
 
             if (term == null)
                 throw new ArgumentNullException("term");
 
-            _identifiers = new ReadOnlyCollection<IdentifierExpression>(new[] {identifier});
+            _selector = selector;
             _relation = relation;
-            _terms = new ReadOnlyCollection<TermExpression>(new[] {term});
+            _term = term;
         }
 
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="RelationExpression" /> class.
-        ///   Used for an token comparison relation
-        /// </summary>
-        /// <param name="identifiers"> The identifiers. </param>
-        /// <param name="relation"> The relation. </param>
-        /// <param name="term"> The term. </param>
-        /// <exception cref="System.ArgumentNullException">identifiers
-        ///   or
-        ///   term</exception>
-        /// <exception cref="System.ArgumentException">The provided ExpressionType is not a valid relation
-        ///   or
-        ///   The provided ExpressionType is not a valid (token) relation</exception>
-        public RelationExpression(IList<IdentifierExpression> identifiers, CqlExpressionType relation,
-                                  TermExpression term)
-        {
-            if (identifiers == null)
-                throw new ArgumentNullException("identifiers");
-
-            if (!relation.ToString().Contains("Relation"))
-                throw new ArgumentException("The provided ExpressionType is not a valid relation");
-
-            if (!relation.ToString().Contains("Token"))
-                throw new ArgumentException("The provided ExpressionType is not a valid (token) relation");
-
-            if (term == null)
-                throw new ArgumentNullException("term");
-
-            _identifiers = identifiers.AsReadOnly();
-            _relation = relation;
-            _terms = new ReadOnlyCollection<TermExpression>(new[] {term});
-        }
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="RelationExpression" /> class. 
-        ///   Used for an IN relation
-        /// </summary>
-        /// <param name="identifier"> The identifier. </param>
-        /// <param name="terms"> The term. </param>
-        /// <exception cref="System.ArgumentNullException">identifier
-        ///   or
-        ///   term</exception>
-        public RelationExpression(IdentifierExpression identifier, IList<TermExpression> terms)
-        {
-            if (identifier == null)
-                throw new ArgumentNullException("identifier");
-
-            if (terms == null)
-                throw new ArgumentNullException("terms");
-
-            _identifiers = new ReadOnlyCollection<IdentifierExpression>(new[] {identifier});
-            _relation = CqlExpressionType.In;
-            _terms = terms.AsReadOnly();
-        }
-
-        private RelationExpression(IList<IdentifierExpression> identifiers, CqlExpressionType relation,
-                                   IList<TermExpression> terms)
-        {
-            _identifiers = identifiers.AsReadOnly();
-            _relation = relation;
-            _terms = terms.AsReadOnly();
-        }
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) _relation; }
+            get { return (ExpressionType)_relation; }
         }
 
         public override Type Type
         {
-            get { return typeof (bool); }
+            get { return typeof(bool); }
         }
 
-        public ReadOnlyCollection<IdentifierExpression> Identifiers
+        public TermExpression Term
         {
-            get { return _identifiers; }
+            get { return _term; }
         }
 
-        public ReadOnlyCollection<TermExpression> Terms
+        public SelectorExpression Selector
         {
-            get { return _terms; }
+            get { return _selector; }
         }
 
         protected override Expression Accept(ExpressionVisitor visitor)
@@ -150,26 +83,11 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            bool changed = false;
+            var selector = (SelectorExpression)visitor.Visit(_selector);
+            var term = (TermExpression)visitor.Visit(_term);
 
-            var terms = new List<TermExpression>();
-            foreach (var term in _terms)
-            {
-                var visitedTerm = (TermExpression) visitor.Visit(term);
-                terms.Add(visitedTerm);
-                changed |= term != visitedTerm;
-            }
-
-            var identifiers = new List<IdentifierExpression>();
-            foreach (var id in _identifiers)
-            {
-                var visitedId = (IdentifierExpression) visitor.Visit(id);
-                identifiers.Add(visitedId);
-                changed |= !visitedId.Equals(id);
-            }
-
-            if (changed)
-                return new RelationExpression(identifiers, _relation, terms);
+            if (selector != _selector || term != _term)
+                return new RelationExpression(selector, _relation, term);
 
             return this;
         }

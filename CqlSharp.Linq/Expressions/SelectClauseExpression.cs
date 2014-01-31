@@ -34,11 +34,14 @@ namespace CqlSharp.Linq.Expressions
             _nodeType = count ? CqlExpressionType.SelectCount : CqlExpressionType.SelectAll;
         }
 
-        public SelectClauseExpression(IList<SelectorExpression> selectors, bool? distinct = null)
+        public SelectClauseExpression(IEnumerable<SelectorExpression> selectors, bool? distinct = null)
         {
             _nodeType = CqlExpressionType.SelectColumns;
             _distinct = distinct;
+
             _selectors = selectors.AsReadOnly();
+            for (int i = 0; i < _selectors.Count; i++)
+                _selectors[i].Ordinal = i;
         }
 
         public bool? Distinct
@@ -53,7 +56,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) _nodeType; }
+            get { return (ExpressionType)_nodeType; }
         }
 
         public override Type Type
@@ -63,9 +66,9 @@ namespace CqlSharp.Linq.Expressions
                 switch (_nodeType)
                 {
                     case CqlExpressionType.SelectColumns:
-                        return typeof (IEnumerable<object>);
+                        return typeof(IEnumerable<object>);
                     case CqlExpressionType.SelectCount:
-                        return typeof (int);
+                        return typeof(int);
                     default:
                         throw new CqlLinqException("Unexpected SekectClayse ExpressionType: " + _nodeType);
                 }
@@ -93,7 +96,7 @@ namespace CqlSharp.Linq.Expressions
                 var selectors = new SelectorExpression[count];
                 for (int i = 0; i < count; i++)
                 {
-                    selectors[i] = (SelectorExpression) visitor.Visit(_selectors[i]);
+                    selectors[i] = (SelectorExpression)visitor.Visit(_selectors[i]);
                     changed |= selectors[i] != _selectors[i];
                 }
 
