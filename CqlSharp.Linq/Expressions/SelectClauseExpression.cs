@@ -25,7 +25,7 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class SelectClauseExpression : Expression
     {
-        private readonly bool? _distinct;
+        private readonly bool _distinct;
         private readonly CqlExpressionType _nodeType;
         private readonly ReadOnlyCollection<SelectorExpression> _selectors;
 
@@ -34,7 +34,7 @@ namespace CqlSharp.Linq.Expressions
             _nodeType = count ? CqlExpressionType.SelectCount : CqlExpressionType.SelectAll;
         }
 
-        public SelectClauseExpression(IEnumerable<SelectorExpression> selectors, bool? distinct = null)
+        public SelectClauseExpression(IEnumerable<SelectorExpression> selectors, bool distinct)
         {
             _nodeType = CqlExpressionType.SelectColumns;
             _distinct = distinct;
@@ -44,7 +44,7 @@ namespace CqlSharp.Linq.Expressions
                 _selectors[i].Ordinal = i;
         }
 
-        public bool? Distinct
+        public bool Distinct
         {
             get { return _distinct; }
         }

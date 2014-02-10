@@ -45,8 +45,11 @@ namespace CqlSharp.Linq.Translation
             var newSelect = new SelectStatementExpression(select.Type,
                                                           new SelectClauseExpression(columns.ToArray(),
                                                                                      select.SelectClause.Distinct),
-                                                          select.TableName, select.WhereClause, select.OrderBy,
-                                                          select.Limit);
+                                                          select.TableName,
+                                                          select.WhereClause,
+                                                          select.OrderBy,
+                                                          select.Limit,
+                                                          select.AllowFiltering);
 
             return new ProjectionExpression(newSelect, newProjection, projection.ResultFunction);
         }
@@ -58,7 +61,7 @@ namespace CqlSharp.Linq.Translation
             {
                 bool changed;
                 var args = node.Arguments.VisitAll(this, out changed);
-                if(args.Any(arg => arg.NodeType != (ExpressionType)CqlExpressionType.IdentifierSelector))
+                if(args.Any(arg => arg.GetType() != typeof(SelectorExpression)))
                     throw new CqlLinqException(string.Format("Argument to {0} function is not recognized as a column identifier", node.Method.Name));
 
                 return new SelectorExpression(node.Method, args.Cast<SelectorExpression>());

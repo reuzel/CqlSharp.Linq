@@ -83,6 +83,11 @@ namespace CqlSharp.Linq.Translation
                 builder.Append(selectStatement.Limit);
             }
 
+            if (selectStatement.AllowFiltering)
+            {
+                builder.Append(" ALLOW FILTERING");
+            }
+
             builder.Append(";");
 
             _translations[selectStatement] = builder.ToString();
@@ -105,8 +110,9 @@ namespace CqlSharp.Linq.Translation
                     translation = "COUNT(*)";
                     break;
                 case CqlExpressionType.SelectColumns:
+                    translation = selectClauseExpression.Distinct ? "DISTINCT " : "";
                     var selectors = selectClauseExpression.Selectors.Select(arg => _translations[arg]);
-                    translation = string.Join(",", selectors);
+                    translation += string.Join(",", selectors);
                     break;
                 default:
                     throw new Exception("Unexpected type of select clause encountered : " +
@@ -130,7 +136,7 @@ namespace CqlSharp.Linq.Translation
                     break;
                 case CqlExpressionType.FunctionSelector:
                     var builder = new StringBuilder();
-                    builder.Append(selector.Function.Name);
+                    builder.Append(selector.Function.Name.ToLower());
                     builder.Append("(");
                     var argsAsString = selector.Arguments.Select(arg => _translations[arg]);
                     builder.Append(string.Join(",", argsAsString));
@@ -244,7 +250,7 @@ namespace CqlSharp.Linq.Translation
                     break;
 
                 case CqlExpressionType.Function:
-                    builder.Append(term.Function.ToString());
+                    builder.Append(term.Function.Name.ToLower());
                     builder.Append("(");
                     builder.Append(string.Join(",", term.Terms.Select(arg => _translations[arg])));
                     builder.Append(")");

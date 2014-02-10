@@ -47,9 +47,13 @@ namespace CqlSharp.Linq.Translation
                                                     ? CqlExpressionType.OrderAscending
                                                     : CqlExpressionType.OrderDescending));
 
-            var newSelect = new SelectStatementExpression(select.Type, select.SelectClause,
-                                                          select.TableName, select.WhereClause, ordering,
-                                                          select.Limit);
+            var newSelect = new SelectStatementExpression(select.Type,
+                                                          select.SelectClause,
+                                                          select.TableName,
+                                                          select.WhereClause,
+                                                          ordering,
+                                                          select.Limit,
+                                                          select.AllowFiltering);
 
             return new ProjectionExpression(newSelect, projection.Projection, projection.ResultFunction);
         }

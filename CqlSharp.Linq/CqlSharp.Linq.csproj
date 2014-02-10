@@ -48,6 +48,7 @@
     <Compile Include="CqlFunctions.cs" />
     <Compile Include="CqlLinqException.cs" />
     <Compile Include="CqlTable.cs" />
+    <Compile Include="CqlToken.cs" />
     <Compile Include="Expressions\CqlExpressionType.cs" />
     <Compile Include="Expressions\CqlExpressionVisitor.cs" />
     <Compile Include="Expressions\OrderingExpression.cs" />
@@ -62,6 +63,7 @@
     <Compile Include="ICqlTable.cs" />
     <Compile Include="ProjectionReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CqlQueryable.cs" />
     <Compile Include="Translation\BuilderBase.cs" />
     <Compile Include="Translation\CqlTextBuilder.cs" />
     <Compile Include="Translation\ExpressionExtensions.cs" />

@@ -52,6 +52,8 @@
   <ItemGroup>
     <Compile Include="LinqTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestUtils.cs" />
+    <Compile Include="CqlFunctionsTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp.Linq\CqlSharp.Linq.csproj">

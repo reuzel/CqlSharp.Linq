@@ -47,8 +47,13 @@ namespace CqlSharp.Linq.Translation
 
             var select = projection.Select;
 
-            var newSelectStmt = new SelectStatementExpression(select.Type, select.SelectClause, select.TableName,
-                                                              _relations.ToArray(), select.OrderBy, select.Limit);
+            var newSelectStmt = new SelectStatementExpression(select.Type,
+                                                              select.SelectClause,
+                                                              select.TableName,
+                                                              _relations.ToArray(),
+                                                              select.OrderBy,
+                                                              select.Limit,
+                                                              select.AllowFiltering);
 
             return new ProjectionExpression(newSelectStmt, projection.Projection, projection.ResultFunction);
         }
@@ -71,7 +76,7 @@ namespace CqlSharp.Linq.Translation
                 }
             }
 
-            if (node.Method.DeclaringType.Implements(typeof(IEnumerable<>)))
+            if (classType.Implements(typeof(ICollection<>)))
             {
                 Expression left = Visit(node.Object);
                 Expression right = Visit(node.Arguments[0]);
@@ -80,6 +85,27 @@ namespace CqlSharp.Linq.Translation
                     case "Contains":
                         return CreateRelation(left, right, CqlExpressionType.In, CqlExpressionType.In);
                 }
+            }
+
+            if (classType == typeof(CqlFunctions))
+            {
+                if (node.Method.Name.Equals("TTL") || node.Method.Name.Equals("WriteTime"))
+                    throw new CqlLinqException("TTL and WriteTime functions are not allowed in a where clause");
+
+                bool changed;
+                var args = node.Arguments.VisitAll(this, out changed);
+
+                //if all args are selector expressions, then return a composite selector (token, etc.)
+                if (args.All(arg => arg.GetType() == typeof(SelectorExpression)))
+                {
+                    return new SelectorExpression(node.Method, args.Cast<SelectorExpression>());
+                }
+
+                //not a selector, thus no selector types are allowed...
+                if (args.Any(arg => arg.GetType() == typeof(SelectorExpression)))
+                    throw new CqlLinqException(string.Format("Function {0} may not a combination of column identifiers and constants", node.Method.Name));
+
+                return new TermExpression(node.Method, args.Cast<TermExpression>());
             }
 
             throw new CqlLinqException(string.Format("Method {0} is not supported in CQL expressions", node.Method.Name));
@@ -145,7 +171,7 @@ namespace CqlSharp.Linq.Translation
             if (right.GetType() != typeof(TermExpression))
                 throw new CqlLinqException("Could not detect term in the CQL where relation");
 
-            _relations.Add(new RelationExpression((SelectorExpression)left, shuffled ? compareOp : compareOpSwitched,
+            _relations.Add(new RelationExpression((SelectorExpression)left, shuffled ? compareOpSwitched : compareOp,
                                                   (TermExpression)right));
 
             return Expression.Constant(true);

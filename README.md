@@ -68,8 +68,25 @@ The following operations are supported:
 * ThenBy
 * ThenByDescending
 * Take
+* Distinct
 
-Note that, as a result of Cassandra not supporting subqueries, `Take` must come after any clause that would introduce a where clause in the resulting Cql. E.g. `MyTable<T>.Take(4).First(c=>c.Id=2)` is invalid, but `MyTable<T>.Where(c=>c.Id=2).Take(4).First()` is valid.
+Note that as a result of Cassandra not supporting subqueries:
+
+* `Take` must come after any clause that would introduce a where clause in the resulting Cql. E.g. `MyTable<T>.Take(4).First(c=>c.Id=2)` is invalid, but `MyTable<T>.Where(c=>c.Id=2).Take(4).First()` is valid.
+* `Distinct` must come after any `Take` statement
+
+All the CQL functions (including TTL and WriteTime) are supported through the CqlFunctions class:
+
+```c#
+	context.Values.Where(v => CqlFunctions.Token(v.Id) < CqlFunctions.Token(0)).ToList();
+
+	context.Values.Where(v => v.Id == 100).Select(v => CqlFunctions.TTL(v.Value)).ToList();
+```
+
+Last, the query can be influenced through the following IQueryable extensions:
+
+* AllowFiltering(); adds the Allow Filtering option to the query
+
 
 ##Design
 Most of the ideas on how this provider is created stems from a blog series from Matt Warren: 
@@ -82,6 +99,6 @@ results into the required object structure.
 
 ##TODO
 * A lot of testing
-* Cql Function support (Token, TTL, ...)
+* ~~Cql Function support (Token, TTL, ...)~~
 * Database creation logic
 * Create/Update/Delete functionality

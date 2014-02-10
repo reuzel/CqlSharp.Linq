@@ -24,6 +24,10 @@ namespace CqlSharp.Linq.Translation
     /// </summary>
     internal class ProjectorBuilder : CqlExpressionVisitor
     {
+        private static readonly ConstructorInfo TokenConstructor =
+            typeof (CqlToken).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, CallingConventions.HasThis,
+                                             new[] {typeof (object)}, null);
+
         private static readonly PropertyInfo Indexer = typeof(CqlDataReader).GetProperty("Item",
                                                                                           new[] { typeof(int) });
 
@@ -40,6 +44,11 @@ namespace CqlSharp.Linq.Translation
         {
             var value = Expression.MakeIndex(_reader, Indexer, new[] { Expression.Constant(selector.Ordinal) });
 
+            //check if it is a token (of which we don't know it's type)
+            if (selector.Type == typeof(CqlToken))
+                return Expression.New(TokenConstructor, value);
+
+            //check if it is a value type (and change null values to corresponding default values)
             if (selector.Type.IsValueType)
             {
                 return Expression.Condition(
@@ -48,6 +57,7 @@ namespace CqlSharp.Linq.Translation
                     Expression.Convert(value, selector.Type));
             }
 
+            //any other class value
             return Expression.Convert(value, selector.Type);
         }
     }

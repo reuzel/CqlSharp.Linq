@@ -31,10 +31,11 @@ namespace CqlSharp.Linq.Expressions
         private readonly string _tableName;
         private readonly Type _type;
         private readonly ReadOnlyCollection<RelationExpression> _whereClause;
+        private readonly bool _allowFiltering;
 
         public SelectStatementExpression(Type type, SelectClauseExpression selectClause, string tableName,
                                          IList<RelationExpression> whereClause, IList<OrderingExpression> orderBy,
-                                         int? limit)
+                                         int? limit, bool allowFiltering)
         {
             if (type == null)
                 throw new ArgumentNullException("type");
@@ -51,11 +52,12 @@ namespace CqlSharp.Linq.Expressions
             _whereClause = whereClause.AsReadOnly();
             _orderBy = orderBy.AsReadOnly();
             _limit = limit;
+            _allowFiltering = allowFiltering;
         }
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) CqlExpressionType.SelectStatement; }
+            get { return (ExpressionType)CqlExpressionType.SelectStatement; }
         }
 
         public override Type Type
@@ -88,6 +90,11 @@ namespace CqlSharp.Linq.Expressions
             get { return _limit; }
         }
 
+        public bool AllowFiltering
+        {
+            get { return _allowFiltering; }
+        }
+
         protected override Expression Accept(ExpressionVisitor visitor)
         {
             var type = visitor as CqlExpressionVisitor;
@@ -104,14 +111,14 @@ namespace CqlSharp.Linq.Expressions
         {
             bool changed = false;
 
-            var selectClause = (SelectClauseExpression) visitor.Visit(_selectClause);
+            var selectClause = (SelectClauseExpression)visitor.Visit(_selectClause);
             changed |= selectClause != _selectClause;
 
             int count = _whereClause.Count;
             var wheres = new RelationExpression[count];
             for (int i = 0; i < count; i++)
             {
-                wheres[i] = (RelationExpression) visitor.Visit(_whereClause[i]);
+                wheres[i] = (RelationExpression)visitor.Visit(_whereClause[i]);
                 changed |= wheres[i] != _whereClause[i];
             }
 
@@ -119,12 +126,12 @@ namespace CqlSharp.Linq.Expressions
             var order = new OrderingExpression[count];
             for (int i = 0; i < count; i++)
             {
-                order[i] = (OrderingExpression) visitor.Visit(_orderBy[i]);
+                order[i] = (OrderingExpression)visitor.Visit(_orderBy[i]);
                 changed |= order[i] != _orderBy[i];
             }
 
             return changed
-                       ? new SelectStatementExpression(_type, selectClause, _tableName, wheres, order, _limit)
+                       ? new SelectStatementExpression(_type, selectClause, _tableName, wheres, order, _limit, _allowFiltering)
                        : this;
         }
     }

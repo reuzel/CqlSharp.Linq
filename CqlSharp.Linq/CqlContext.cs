@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
+using CqlSharp.Linq.Translation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,8 +22,6 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using CqlSharp.Linq.Expressions;
-using CqlSharp.Linq.Translation;
 
 namespace CqlSharp.Linq
 {
@@ -50,7 +50,8 @@ namespace CqlSharp.Linq
         /// </summary>
         /// <param name="connectionString"> The connection string. </param>
         /// <param name="initializeTables"> indicates wether the table properties are to be automatically initialized </param>
-        protected CqlContext(string connectionString, bool initializeTables = true) : this(initializeTables)
+        protected CqlContext(string connectionString, bool initializeTables = true)
+            : this(initializeTables)
         {
             _connectionString = connectionString;
         }
@@ -107,7 +108,7 @@ namespace CqlSharp.Linq
             foreach (var property in properties)
             {
                 var propertyType = property.PropertyType;
-                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof (CqlTable<>))
+                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(CqlTable<>))
                 {
                     var table = Activator.CreateInstance(propertyType, this);
                     property.SetValue(this, table);
@@ -138,10 +139,10 @@ namespace CqlSharp.Linq
 
             Delegate projector = result.Projector.Compile();
 
-            var enm = (IEnumerable<object>) Activator.CreateInstance(
-                typeof (ProjectionReader<>).MakeGenericType(result.Projector.ReturnType),
+            var enm = (IEnumerable<object>)Activator.CreateInstance(
+                typeof(ProjectionReader<>).MakeGenericType(result.Projector.ReturnType),
                 BindingFlags.Instance | BindingFlags.NonPublic, null,
-                new object[] {this, result.Cql, projector},
+                new object[] { this, result.Cql, projector },
                 null
                                                 );
 
@@ -182,7 +183,7 @@ namespace CqlSharp.Linq
                                  : "<none>"));
 
             //return translation results
-            return new ParseResult {Cql = cql, Projector = projector, ResultFunction = translation.ResultFunction};
+            return new ParseResult { Cql = cql, Projector = projector, ResultFunction = translation.ResultFunction };
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)
@@ -192,6 +193,13 @@ namespace CqlSharp.Linq
             {
                 var query = cex.Value as IQueryable;
                 if (query != null && query.Provider == this)
+                    return false;
+            }
+
+            var mex = expression as MethodCallExpression;
+            if (mex != null)
+            {
+                if (mex.Method.DeclaringType == typeof(CqlFunctions))
                     return false;
             }
 
@@ -224,8 +232,8 @@ namespace CqlSharp.Linq
             {
                 return
                     (IQueryable)
-                    Activator.CreateInstance(typeof (CqlTable<>).MakeGenericType(elementType),
-                                             new object[] {this, expression});
+                    Activator.CreateInstance(typeof(CqlTable<>).MakeGenericType(elementType),
+                                             new object[] { this, expression });
             }
             catch (TargetInvocationException tie)
             {
@@ -241,7 +249,7 @@ namespace CqlSharp.Linq
         /// <returns> </returns>
         TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
-            return (TResult) Execute(expression);
+            return (TResult)Execute(expression);
         }
 
         /// <summary>

@@ -29,12 +29,44 @@ namespace CqlSharp.Linq
             throw new CqlLinqException("This function can only be used as part of a Linq expression");
         }
 
-        public static object Token(params object[] identifiers)
+        public static CqlToken Token<T1>(T1 identifier)
         {
             throw new CqlLinqException("This function can only be used as part of a Linq expression");
         }
 
-        public static DateTime Now()
+        public static CqlToken Token<T1, T2>(T1 identifier, T2 identifier2)
+        {
+            throw new CqlLinqException("This function can only be used as part of a Linq expression");
+        }
+
+        public static CqlToken Token<T1, T2, T3>(T1 identifier, T2 identifier2, T3 identifier3)
+        {
+            throw new CqlLinqException("This function can only be used as part of a Linq expression");
+        }
+
+        public static CqlToken Token<T1, T2, T3, T4>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4)
+        {
+            throw new CqlLinqException("This function can only be used as part of a Linq expression");
+        }
+
+        public static CqlToken Token<T1, T2, T3, T4, T5>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4, T5 identifier5)
+        {
+            throw new CqlLinqException("This function can only be used as part of a Linq expression");
+        }
+
+        public static CqlToken Token<T1, T2, T3, T4, T5, T6>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4, T5 identifier5, T6 identifier6)
+        {
+            throw new CqlLinqException("This function can only be used as part of a Linq expression");
+        }
+
+        public static CqlToken Token<T1, T2, T3, T4, T5, T6, T7>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4, T5 identifier5, T6 identifier6, T7 identifier7)
+        {
+            throw new CqlLinqException("This function can only be used as part of a Linq expression");
+        }
+
+
+
+        public static Guid Now()
         {
             throw new CqlLinqException("This function can only be used as part of a Linq expression");
         }
