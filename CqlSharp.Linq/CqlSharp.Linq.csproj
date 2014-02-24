@@ -61,6 +61,7 @@
     <Compile Include="Expressions\SelectStatementExpression.cs" />
     <Compile Include="Expressions\TermExpression.cs" />
     <Compile Include="ICqlTable.cs" />
+    <Compile Include="IProjectionReader.cs" />
     <Compile Include="ProjectionReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CqlQueryable.cs" />

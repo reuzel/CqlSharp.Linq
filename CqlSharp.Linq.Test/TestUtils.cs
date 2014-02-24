@@ -13,20 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
 
 namespace CqlSharp.Linq.Test
 {
     internal static class TestUtils
     {
-        internal static void ExecuteQuery(QueryFunc query, string cql)
+        internal static void ExecuteQuery(QueryFunc query, string expectedCql)
         {
-            using (var queryWriter = new StringWriter())
-            using (var context = new MyContext { SkipExecute = true, Log = queryWriter })
+            string executedCql = string.Empty;
+            using (var context = new MyContext { SkipExecute = true, Log = (cql) => { executedCql = cql; } })
             {
                 var result = query(context);
-                Assert.AreEqual(cql, queryWriter.ToString().TrimEnd());
+                Assert.AreEqual(expectedCql, executedCql.TrimEnd());
             }
         }
 
@@ -42,6 +42,17 @@ namespace CqlSharp.Linq.Test
     /// </summary>
     public class MyContext : CqlContext
     {
+        public MyContext()
+        {
+
+        }
+
+        public MyContext(string connectionString)
+            : base(connectionString)
+        {
+
+        }
+
         public CqlTable<MyValue> Values { get; set; }
     }
 
@@ -52,6 +63,20 @@ namespace CqlSharp.Linq.Test
     public class MyValue
     {
         public int Id { get; set; }
+        public string Value { get; set; }
+    }
+
+    /// <summary>
+    /// Similar to MyValue, but now annotated with key and keyspace data
+    /// </summary>
+    [CqlTable("myvalue", Keyspace = "linqtest")]
+    public class AnnotatedTable
+    {
+        [CqlKey]
+        [CqlColumn("id")]
+        public int Id { get; set; }
+
+        [CqlColumn("value", CqlType.Ascii)]
         public string Value { get; set; }
     }
 }

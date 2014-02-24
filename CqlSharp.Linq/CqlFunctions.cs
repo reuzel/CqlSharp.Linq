@@ -64,8 +64,6 @@ namespace CqlSharp.Linq
             throw new CqlLinqException("This function can only be used as part of a Linq expression");
         }
 
-
-
         public static Guid Now()
         {
             throw new CqlLinqException("This function can only be used as part of a Linq expression");

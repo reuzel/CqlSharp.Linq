@@ -23,7 +23,7 @@ namespace CqlSharp.Linq
     ///   Executes a CQL query and transforms the results into object using a projector
     /// </summary>
     /// <typeparam name="T"> </typeparam>
-    internal class ProjectionReader<T> : IEnumerable<T>
+    internal class ProjectionReader<T> : IEnumerable<T>, IProjectionReader
     {
         private readonly CqlContext _context;
         private readonly string _cql;
@@ -84,5 +84,17 @@ namespace CqlSharp.Linq
         }
 
         #endregion
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection, and returns the result as objects
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection.
+        /// </returns>
+        public IEnumerable<object> AsObjectEnumerable()
+        {
+            foreach (var elem in this)
+                yield return elem;
+        }
     }
 }

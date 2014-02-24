@@ -69,7 +69,18 @@ namespace CqlSharp.Linq
         /// <value> The name. </value>
         public string Name
         {
-            get { return ObjectAccessor<T>.Instance.Table; }
+            get
+            {
+                var accessor = ObjectAccessor<T>.Instance;
+
+                if (!accessor.IsTableSet)
+                    throw new CqlLinqException("Name of the Table can not be derived for type " + accessor.Type.FullName);
+
+                if (accessor.IsKeySpaceSet)
+                    return accessor.Keyspace + "." + accessor.Table;
+
+                return accessor.Table;
+            }
         }
 
         /// <summary>

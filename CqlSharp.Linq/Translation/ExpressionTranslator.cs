@@ -26,8 +26,6 @@ namespace CqlSharp.Linq.Translation
     /// </summary>
     internal class ExpressionTranslator : CqlExpressionVisitor
     {
-        private readonly Dictionary<Expression, Expression> _map = new Dictionary<Expression, Expression>();
-
         public ProjectionExpression Translate(Expression expression)
         {
             return (ProjectionExpression)Visit(expression);
@@ -256,43 +254,17 @@ namespace CqlSharp.Linq.Translation
                                                                        1,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, source.Projection, (enm) => enm.Any());
+                            return new ProjectionExpression(select, source.Projection, enm => enm.Any());
                         }
 
                     case "Count":
+                    case "LongCount":
                         {
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
 
                             //count and distinct do not go together in CQL
                             if (source.Select.SelectClause.Distinct)
                                 throw new CqlLinqException("Count cannot be combined with Distinct in CQL");
-
-                            //if first contains a predicate, include it in the where clause...
-                            if (call.Arguments.Count > 1)
-                            {
-                                if (source.Select.Limit.HasValue)
-                                    throw new CqlLinqException(
-                                        "A Count statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
-
-                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
-                            }
-
-                            //remove the select clause and replace with count(*)
-                            var select = new SelectStatementExpression(typeof(int),
-                                                                       new SelectClauseExpression(true),
-                                                                       source.Select.TableName,
-                                                                       source.Select.WhereClause,
-                                                                       null,
-                                                                       source.Select.Limit,
-                                                                       source.Select.AllowFiltering);
-
-                            return new ProjectionExpression(select, new SelectorExpression("count", typeof(int)), Enumerable.Single);
-                        }
-
-
-                    case "LongCount":
-                        {
-                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
 
                             //if first contains a predicate, include it in the where clause...
                             if (call.Arguments.Count > 1)
@@ -313,8 +285,7 @@ namespace CqlSharp.Linq.Translation
                                                                        source.Select.Limit,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, new SelectorExpression("count", typeof(long)),
-                                                            Enumerable.Single);
+                            return new ProjectionExpression(select, new SelectorExpression("count", typeof(long)), Enumerable.Single);
                         }
 
                     case "OrderBy":

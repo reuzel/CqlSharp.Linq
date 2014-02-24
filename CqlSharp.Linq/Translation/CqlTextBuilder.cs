@@ -59,9 +59,9 @@ namespace CqlSharp.Linq.Translation
             var builder = new StringBuilder();
             builder.Append("SELECT ");
             builder.Append(_translations[selectStatement.SelectClause]);
-            builder.Append(" FROM '");
+            builder.Append(" FROM \"");
             builder.Append(selectStatement.TableName);
-            builder.Append("'");
+            builder.Append("\"");
 
             if (selectStatement.WhereClause != null && selectStatement.WhereClause.Any())
             {
@@ -132,7 +132,7 @@ namespace CqlSharp.Linq.Translation
             switch ((CqlExpressionType)selector.NodeType)
             {
                 case CqlExpressionType.IdentifierSelector:
-                    value = "'" + selector.Identifier + "'";
+                    value = "\"" + selector.Identifier + "\"";
                     break;
                 case CqlExpressionType.FunctionSelector:
                     var builder = new StringBuilder();
@@ -215,9 +215,7 @@ namespace CqlSharp.Linq.Translation
                 case CqlExpressionType.List:
                     {
                         builder.Append("[");
-                        var elements = new List<string>();
-                        foreach (var value in term.Terms)
-                            elements.Add(_translations[value]);
+                        var elements = term.Terms.Select(value => _translations[value]).ToList();
                         builder.Append(string.Join(",", elements));
                         builder.Append("]");
                     }
@@ -226,9 +224,7 @@ namespace CqlSharp.Linq.Translation
                 case CqlExpressionType.Set:
                     {
                         builder.Append("{");
-                        var elements = new List<string>();
-                        foreach (var value in term.Terms)
-                            elements.Add(_translations[value]);
+                        var elements = term.Terms.Select(value => _translations[value]).ToList();
                         builder.Append(string.Join(",", elements));
                         builder.Append("}");
                     }
@@ -237,13 +233,7 @@ namespace CqlSharp.Linq.Translation
                 case CqlExpressionType.Map:
                     {
                         builder.Append("{");
-                        var elements = new List<string>();
-                        foreach (var pair in term.DictionaryTerms)
-                        {
-                            elements.Add(string.Format("{0}:{1}",
-                                                       _translations[pair.Key],
-                                                       _translations[pair.Value]));
-                        }
+                        var elements = term.DictionaryTerms.Select(pair => string.Format("{0}:{1}", _translations[pair.Key], _translations[pair.Value])).ToList();
                         builder.Append(string.Join(",", elements));
                         builder.Append("}");
                     }

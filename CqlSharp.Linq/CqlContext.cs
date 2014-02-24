@@ -16,9 +16,7 @@
 using CqlSharp.Linq.Expressions;
 using CqlSharp.Linq.Translation;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -77,7 +75,7 @@ namespace CqlSharp.Linq
         ///   Gets or sets the log where executed CQL queries are written to
         /// </summary>
         /// <value> The log. </value>
-        public TextWriter Log { get; set; }
+        public Action<string> Log { get; set; }
 
 #if DEBUG
         /// <summary>
@@ -116,13 +114,23 @@ namespace CqlSharp.Linq
             }
         }
 
+        /// <summary>
+        /// Gets the table represented by the provided type.
+        /// </summary>
+        /// <typeparam name="T">type that represents the values in the table</typeparam>
+        /// <returns>a CqlTable</returns>
+        public CqlTable<T> GetTable<T>()
+        {
+            return new CqlTable<T>(this);
+        }
+
         private object Execute(Expression expression)
         {
             var result = ParseExpression(expression);
 
             //log the query
             if (Log != null)
-                Log.WriteLine(result.Cql);
+                Log(result.Cql);
 
 #if DEBUG
             //return default values of execution is to be skipped
@@ -139,15 +147,15 @@ namespace CqlSharp.Linq
 
             Delegate projector = result.Projector.Compile();
 
-            var enm = (IEnumerable<object>)Activator.CreateInstance(
+            var enm = (IProjectionReader)Activator.CreateInstance(
                 typeof(ProjectionReader<>).MakeGenericType(result.Projector.ReturnType),
-                BindingFlags.Instance | BindingFlags.NonPublic, null,
+                BindingFlags.Instance | BindingFlags.Public, null,
                 new object[] { this, result.Cql, projector },
                 null
                                                 );
 
             if (result.ResultFunction != null)
-                return result.ResultFunction.Invoke(enm);
+                return result.ResultFunction.Invoke(enm.AsObjectEnumerable());
 
             return enm;
         }
@@ -249,7 +257,14 @@ namespace CqlSharp.Linq
         /// <returns> </returns>
         TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
-            return (TResult)Execute(expression);
+            object result = Execute(expression);
+
+            //convert known value types (long to int, etc) via their IConvertible interface
+            if (result is IConvertible)
+                return (TResult)Convert.ChangeType(result, typeof(TResult));
+
+            //cast otherwise
+            return (TResult)result;
         }
 
         /// <summary>

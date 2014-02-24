@@ -30,7 +30,7 @@ namespace CqlSharp.Linq.Test
             TestUtils.QueryFunc query =
                 context => context.Values.Where(p => p.Value == filter + " daar").Select(r => r.Id).ToList();
 
-            TestUtils.ExecuteQuery(query, "SELECT 'id' FROM 'myvalue' WHERE 'value'='hallo daar';");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"value\"='hallo daar';");
         }
 
         [TestMethod]
@@ -38,42 +38,42 @@ namespace CqlSharp.Linq.Test
         {
             TestUtils.QueryFunc query = context => context.Values.Select(r => r.Id).Where(id => id == 4).ToList();
 
-            TestUtils.ExecuteQuery(query, "SELECT 'id' FROM 'myvalue' WHERE 'id'=4;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"id\"=4;");
         }
 
         [TestMethod]
         public void NoWhereOrSelect()
         {
-            TestUtils.QueryFunc query = context => context.Values.ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue';");
+            TestUtils.QueryFunc query = context => context.GetTable<AnnotatedTable>().ToList();
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"linqtest.myvalue\";");
         }
 
         [TestMethod]
         public void SelectAll()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(row => row).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue';");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\";");
         }
 
         [TestMethod]
         public void SelectIntoNewObject()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(r => new {Id2 = r.Id, Value2 = r.Value}).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue';");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\";");
         }
 
         [TestMethod]
         public void WhereIdInArray()
         {
             TestUtils.QueryFunc query = context => context.Values.Where(r => new[] {1, 2, 3, 4}.Contains(r.Id)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (1,2,3,4);");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\" IN (1,2,3,4);");
         }
 
         [TestMethod]
         public void WhereIdInList()
         {
             TestUtils.QueryFunc query = context => context.Values.Where(r => new List<int> {1, 2, 3, 4}.Contains(r.Id)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (1,2,3,4);");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\" IN (1,2,3,4);");
         }
 
         [TestMethod]
@@ -81,7 +81,7 @@ namespace CqlSharp.Linq.Test
         {
             TestUtils.QueryFunc query =
                 context => context.Values.Where(r => new HashSet<int> {1, 2, 3, 4}.Contains(r.Id)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (1,2,3,4);");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\" IN (1,2,3,4);");
         }
 
         [TestMethod]
@@ -100,7 +100,7 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
-        [ExpectedException(typeof (CqlLinqException), "Type System.Char can't be converted to a CQL value")]
+        [ExpectedException(typeof (CqlLinqException), "Type System.Char can\"t be converted to a CQL value")]
         public void WhereIdInNotSupportedListType()
         {
             TestUtils.QueryFunc query =
@@ -114,7 +114,7 @@ namespace CqlSharp.Linq.Test
             TestUtils.QueryFunc query =
                 context =>
                 context.Values.Select(r => new {Id2 = r.Id, Value2 = r.Value}).Where(at => at.Id2 == 4).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=4;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\"=4;");
         }
 
         [TestMethod]
@@ -124,14 +124,14 @@ namespace CqlSharp.Linq.Test
                 context =>
                 context.Values.Select(r => new {Id2 = r.Id + 2, Value2 = r.Value}).Select(r2 => new {Id3 = r2.Id2}).
                     ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id' FROM 'myvalue';");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\";");
         }
 
         [TestMethod]
         public void OnlyWhere()
         {
             TestUtils.QueryFunc query = context => context.Values.Where(r => r.Id == 2).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\"=2;");
         }
 
         [TestMethod]
@@ -150,63 +150,63 @@ namespace CqlSharp.Linq.Test
             var selection = from r in range where r > 3 select r;
 
             TestUtils.QueryFunc query = context => context.Values.Where(r => selection.Contains(r.Id)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (4,5);");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\" IN (4,5);");
         }
 
         [TestMethod]
         public void OnlyFirst()
         {
             TestUtils.QueryFunc query = context => context.Values.First();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" LIMIT 1;");
         }
 
         [TestMethod]
         public void FirstWithPredicate()
         {
             TestUtils.QueryFunc query = context => context.Values.First(v => v.Id == 2);
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2 LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\"=2 LIMIT 1;");
         }
 
         [TestMethod]
         public void SelectThenFirst()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(v => new {Id2 = v.Id}).First();
-            TestUtils.ExecuteQuery(query, "SELECT 'id' FROM 'myvalue' LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" LIMIT 1;");
         }
 
         [TestMethod]
         public void SelectThenWhereThenFirst()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(v => new {Id2 = v.Id}).Where(v2 => v2.Id2 == 2).First();
-            TestUtils.ExecuteQuery(query, "SELECT 'id' FROM 'myvalue' WHERE 'id'=2 LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"id\"=2 LIMIT 1;");
         }
 
         [TestMethod]
         public void SelectThenFirstWithPredicate()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(v => new {Id2 = v.Id}).First(v2 => v2.Id2 == 2);
-            TestUtils.ExecuteQuery(query, "SELECT 'id' FROM 'myvalue' WHERE 'id'=2 LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"id\"=2 LIMIT 1;");
         }
 
         [TestMethod]
         public void OnlyFirstOrDefault()
         {
             TestUtils.QueryFunc query = context => context.Values.FirstOrDefault();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" LIMIT 1;");
         }
 
         [TestMethod]
         public void FirstOrDefaultWithPredicate()
         {
             TestUtils.QueryFunc query = context => context.Values.FirstOrDefault(v => v.Id == 2);
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2 LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\"=2 LIMIT 1;");
         }
 
         [TestMethod]
         public void CountWithPredicate()
         {
             TestUtils.QueryFunc query = context => context.Values.Count(v => v.Id == 2);
-            TestUtils.ExecuteQuery(query, "SELECT COUNT(*) FROM 'myvalue' WHERE 'id'=2;");
+            TestUtils.ExecuteQuery(query, "SELECT COUNT(*) FROM \"myvalue\" WHERE \"id\"=2;");
         }
 
         [TestMethod]
@@ -222,28 +222,28 @@ namespace CqlSharp.Linq.Test
         public void WhereThenTake()
         {
             TestUtils.QueryFunc query = context => context.Values.Where(v => v.Id == 2).Take(3).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2 LIMIT 3;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\"=2 LIMIT 3;");
         }
 
         [TestMethod]
         public void LargeTakeThenSmallTake()
         {
             TestUtils.QueryFunc query = context => context.Values.Take(3).Take(1).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" LIMIT 1;");
         }
 
         [TestMethod]
         public void SmallTakeThenLargeTake()
         {
             TestUtils.QueryFunc query = context => context.Values.Take(1).Take(3).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' LIMIT 1;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" LIMIT 1;");
         }
 
         [TestMethod]
         public void TakeThenCount()
         {
             TestUtils.QueryFunc query = context => context.Values.Take(100).Count();
-            TestUtils.ExecuteQuery(query, "SELECT COUNT(*) FROM 'myvalue' LIMIT 100;");
+            TestUtils.ExecuteQuery(query, "SELECT COUNT(*) FROM \"myvalue\" LIMIT 100;");
         }
 
         [TestMethod]
@@ -260,14 +260,14 @@ namespace CqlSharp.Linq.Test
             TestUtils.QueryFunc query =
                 context =>
                 context.Values.Select(r => new {Id2 = r.Id, Value2 = r.Value}).Where(at => at.Id2 == 4).Take(3).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=4 LIMIT 3;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\"=4 LIMIT 3;");
         }
 
         [TestMethod]
         public void OrderBy()
         {
             TestUtils.QueryFunc query = context => context.Values.OrderBy(v => v.Id).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" ORDER BY \"id\" ASC;");
         }
 
         [TestMethod]
@@ -275,21 +275,21 @@ namespace CqlSharp.Linq.Test
         {
             TestUtils.QueryFunc query =
                 context => context.Values.Select(r => new {Id2 = r.Id, Value2 = r.Value}).OrderBy(at => at.Id2).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" ORDER BY \"id\" ASC;");
         }
 
         [TestMethod]
         public void OrderByThenByDescending()
         {
             TestUtils.QueryFunc query = context => context.Values.OrderBy(v => v.Id).ThenByDescending(v2 => v2.Value).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC,'value' DESC;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" ORDER BY \"id\" ASC,\"value\" DESC;");
         }
 
         [TestMethod]
         public void OrderByThenOrderBy()
         {
             TestUtils.QueryFunc query = context => context.Values.OrderBy(v => v.Id).OrderByDescending(v2 => v2.Value).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC,'value' DESC;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" ORDER BY \"id\" ASC,\"value\" DESC;");
         }
 
         [TestMethod]
@@ -304,21 +304,21 @@ namespace CqlSharp.Linq.Test
         public void OrderByThenTake()
         {
             TestUtils.QueryFunc query = context => context.Values.OrderBy(v => v.Id).Take(4).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC LIMIT 4;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" ORDER BY \"id\" ASC LIMIT 4;");
         }
 
         [TestMethod]
         public void SelectDistinct()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(v => v.Id).Distinct().ToList();
-            TestUtils.ExecuteQuery(query, "SELECT DISTINCT 'id' FROM 'myvalue';");
+            TestUtils.ExecuteQuery(query, "SELECT DISTINCT \"id\" FROM \"myvalue\";");
         }
 
         [TestMethod]
         public void SelectDistinctTake()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(v => v.Id).Distinct().Take(3).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT DISTINCT 'id' FROM 'myvalue' LIMIT 3;");
+            TestUtils.ExecuteQuery(query, "SELECT DISTINCT \"id\" FROM \"myvalue\" LIMIT 3;");
         }
 
         [TestMethod]
@@ -326,7 +326,7 @@ namespace CqlSharp.Linq.Test
         public void SelectTakeThenDistinct()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(v => v.Id).Take(3).Distinct().ToList();
-            TestUtils.ExecuteQuery(query, "SELECT DISTINCT 'id' FROM 'myvalue' LIMIT 3;");
+            TestUtils.ExecuteQuery(query, "SELECT DISTINCT \"id\" FROM \"myvalue\" LIMIT 3;");
         }
        
     }

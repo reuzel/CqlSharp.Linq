@@ -26,7 +26,7 @@ namespace CqlSharp.Linq.Test
         {
             TestUtils.QueryFunc query =
                 context => context.Values.Select(v => CqlFunctions.UnixTimeStampOf(CqlFunctions.Now())).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT unixtimestampof(now()) FROM 'myvalue';");
+            TestUtils.ExecuteQuery(query, "SELECT unixtimestampof(now()) FROM \"myvalue\";");
         }
 
         [TestMethod]
@@ -34,7 +34,7 @@ namespace CqlSharp.Linq.Test
         {
             TestUtils.QueryFunc query =
                 context => context.Values.Where(v => CqlFunctions.Token(v.Id) < CqlFunctions.Token(0)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE token('id')<token(0);");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE token(\"id\")<token(0);");
         }
 
         [TestMethod]
@@ -43,7 +43,7 @@ namespace CqlSharp.Linq.Test
             TestUtils.QueryFunc query =
                 context =>
                 context.Values.Select(v => CqlFunctions.Token(v.Id)).Where(tid => tid < CqlFunctions.Token(0)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT token('id') FROM 'myvalue' WHERE token('id')<token(0);");
+            TestUtils.ExecuteQuery(query, "SELECT token(\"id\") FROM \"myvalue\" WHERE token(\"id\")<token(0);");
         }
 
         [TestMethod]
@@ -73,7 +73,7 @@ namespace CqlSharp.Linq.Test
                 context =>
                 context.Values.Where(p => p.Value == "hallo daar").Select(r => r.Id).AllowFiltering().ToList();
 
-            TestUtils.ExecuteQuery(query, "SELECT 'id' FROM 'myvalue' WHERE 'value'='hallo daar' ALLOW FILTERING;");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"value\"='hallo daar' ALLOW FILTERING;");
         }
     }
 }
