@@ -16,6 +16,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 
 namespace CqlSharp.Linq
 {
@@ -59,17 +60,21 @@ namespace CqlSharp.Linq
         /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
         public IEnumerator<T> GetEnumerator()
         {
-            using (var connection = new CqlConnection(_context.ConnectionString))
-            {
+            var connection = _context.Database.Connection;
+
+            if (connection.State == ConnectionState.Closed)
                 connection.Open();
 
-                var command = new CqlCommand(connection, _cql);
-                using (var reader = command.ExecuteReader())
+            var command = new CqlCommand(connection, _cql);
+
+            if (_context.Database.CommandTimeout.HasValue)
+                command.CommandTimeout = _context.Database.CommandTimeout.Value;
+
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        yield return _projector(reader);
-                    }
+                    yield return _projector(reader);
                 }
             }
         }

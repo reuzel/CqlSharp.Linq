@@ -23,8 +23,9 @@ namespace CqlSharp.Linq.Test
         internal static void ExecuteQuery(QueryFunc query, string expectedCql)
         {
             string executedCql = string.Empty;
-            using (var context = new MyContext { SkipExecute = true, Log = (cql) => { executedCql = cql; } })
+            using (var context = new MyContext { SkipExecute = true})
             {
+                context.Database.Log = (cql) => { executedCql = cql; };
                 var result = query(context);
                 Assert.AreEqual(expectedCql, executedCql.TrimEnd());
             }

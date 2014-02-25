@@ -28,7 +28,8 @@ namespace CqlSharp.Linq
     /// </summary>
     public abstract class CqlContext : IQueryProvider, IDisposable
     {
-        private string _connectionString;
+
+        private readonly CqlDatabase _database;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlContext" /> class.
@@ -39,6 +40,8 @@ namespace CqlSharp.Linq
 #if DEBUG
             SkipExecute = false;
 #endif
+            _database = new CqlDatabase(this);
+
             if (initializeTables)
                 InitializeTables();
         }
@@ -51,31 +54,21 @@ namespace CqlSharp.Linq
         protected CqlContext(string connectionString, bool initializeTables = true)
             : this(initializeTables)
         {
-            _connectionString = connectionString;
+            _database.ConnectionString = connectionString;
         }
 
         /// <summary>
-        ///   Gets the connection string.
+        /// Gets the database underlying this context
         /// </summary>
-        /// <value> The connection string. </value>
-        public string ConnectionString
+        /// <value>
+        /// The database.
+        /// </value>
+        public CqlDatabase Database
         {
-            get
-            {
-                if (_connectionString == null)
-                    _connectionString = GetType().Name;
-
-                return _connectionString;
-            }
-
-            set { _connectionString = value; }
+            get { return _database; }
         }
 
-        /// <summary>
-        ///   Gets or sets the log where executed CQL queries are written to
-        /// </summary>
-        /// <value> The log. </value>
-        public Action<string> Log { get; set; }
+
 
 #if DEBUG
         /// <summary>
@@ -93,6 +86,7 @@ namespace CqlSharp.Linq
         /// <filterpriority>2</filterpriority>
         public void Dispose()
         {
+            _database.Dispose();
         }
 
         #endregion
@@ -124,13 +118,20 @@ namespace CqlSharp.Linq
             return new CqlTable<T>(this);
         }
 
+        /// <summary>
+        /// Executes the query represented by a specified expression tree.
+        /// </summary>
+        /// <param name="expression">An expression tree that represents a LINQ query.</param>
+        /// <returns>
+        /// The value that results from executing the specified query.
+        /// </returns>
         private object Execute(Expression expression)
         {
             var result = ParseExpression(expression);
 
             //log the query
-            if (Log != null)
-                Log(result.Cql);
+            if (_database.Log != null)
+                _database.Log(result.Cql);
 
 #if DEBUG
             //return default values of execution is to be skipped
@@ -160,6 +161,9 @@ namespace CqlSharp.Linq
             return enm;
         }
 
+        /// <summary>
+        /// container containing the linq expression parsing results
+        /// </summary>
         internal class ParseResult
         {
             public string Cql { get; set; }
@@ -167,6 +171,11 @@ namespace CqlSharp.Linq
             public ResultFunction ResultFunction { get; set; }
         }
 
+        /// <summary>
+        /// Parses the expression.
+        /// </summary>
+        /// <param name="expression">The expression.</param>
+        /// <returns></returns>
         internal ParseResult ParseExpression(Expression expression)
         {
             Debug.WriteLine("Original Expression: " + expression);
@@ -194,6 +203,11 @@ namespace CqlSharp.Linq
             return new ParseResult { Cql = cql, Projector = projector, ResultFunction = translation.ResultFunction };
         }
 
+        /// <summary>
+        /// Determines whether this instance [can be evaluated locally] the specified expression.
+        /// </summary>
+        /// <param name="expression">The expression.</param>
+        /// <returns></returns>
         private bool CanBeEvaluatedLocally(Expression expression)
         {
             var cex = expression as ConstantExpression;

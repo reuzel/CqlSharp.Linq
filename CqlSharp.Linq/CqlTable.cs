@@ -76,9 +76,15 @@ namespace CqlSharp.Linq
                 if (!accessor.IsTableSet)
                     throw new CqlLinqException("Name of the Table can not be derived for type " + accessor.Type.FullName);
 
+                //if table metadata contains a keyspace, use it
                 if (accessor.IsKeySpaceSet)
                     return accessor.Keyspace + "." + accessor.Table;
 
+                //if context database has defined a database, use it
+                if (!string.IsNullOrWhiteSpace(_context.Database.Keyspace))
+                    return _context.Database.Keyspace + "." + accessor.Table;
+
+                //return the simple table name
                 return accessor.Table;
             }
         }
