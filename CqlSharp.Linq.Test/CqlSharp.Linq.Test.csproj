@@ -61,6 +61,7 @@
     <Compile Include="TableTest.cs" />
     <Compile Include="TestUtils.cs" />
     <Compile Include="CqlFunctionsTest.cs" />
+    <Compile Include="MutationTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp.Linq\CqlSharp.Linq.csproj">

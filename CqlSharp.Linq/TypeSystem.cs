@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace CqlSharp.Linq
@@ -34,15 +35,15 @@ namespace CqlSharp.Linq
 
         public static Type FindIEnumerable(Type seqType)
         {
-            if (seqType == null || seqType == typeof (string))
+            if (seqType == null || seqType == typeof(string))
                 return null;
             if (seqType.IsArray)
-                return typeof (IEnumerable<>).MakeGenericType(seqType.GetElementType());
+                return typeof(IEnumerable<>).MakeGenericType(seqType.GetElementType());
             if (seqType.IsGenericType)
             {
                 foreach (Type arg in seqType.GetGenericArguments())
                 {
-                    Type ienum = typeof (IEnumerable<>).MakeGenericType(arg);
+                    Type ienum = typeof(IEnumerable<>).MakeGenericType(arg);
                     if (ienum.IsAssignableFrom(seqType))
                     {
                         return ienum;
@@ -58,7 +59,7 @@ namespace CqlSharp.Linq
                     if (ienum != null) return ienum;
                 }
             }
-            if (seqType.BaseType != null && seqType.BaseType != typeof (object))
+            if (seqType.BaseType != null && seqType.BaseType != typeof(object))
             {
                 return FindIEnumerable(seqType.BaseType);
             }
@@ -96,6 +97,29 @@ namespace CqlSharp.Linq
             }
 
             return false;
+        }
+
+        public static bool SequenceEqual(IEnumerable first, IEnumerable second)
+        {
+            if (first == null && second == null)
+                return true;
+
+            if (first == null || second == null)
+                return false;
+
+            var enumerator1 = first.GetEnumerator();
+            var enumerator2 = second.GetEnumerator();
+
+            while (enumerator1.MoveNext())
+            {
+                if (!enumerator2.MoveNext() || !Equals(enumerator1.Current, enumerator2.Current))
+                    return false;
+            }
+
+            if (enumerator2.MoveNext())
+                return false;
+
+            return true;
         }
     }
 }

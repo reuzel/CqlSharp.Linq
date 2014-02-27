@@ -62,7 +62,7 @@ namespace CqlSharp.Linq.Test
     /// </summary>
     public class MyValue
     {
-        public int Id { get; set; }
+        public int Id;
         public string Value { get; set; }
     }
 
