@@ -16,6 +16,7 @@
 using CqlSharp.Linq.Expressions;
 using CqlSharp.Linq.Translation;
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
@@ -31,6 +32,11 @@ namespace CqlSharp.Linq
         private string _connectionString;
 
         /// <summary>
+        /// The list of tables known to this context
+        /// </summary>
+        private readonly ConcurrentDictionary<Type, ICqlTable> _tables;
+
+        /// <summary>
         ///   Initializes a new instance of the <see cref="CqlContext" /> class.
         /// </summary>
         /// <param name="initializeTables"> indicates wether the table properties are to be automatically initialized </param>
@@ -39,6 +45,8 @@ namespace CqlSharp.Linq
 #if DEBUG
             SkipExecute = false;
 #endif
+            _tables = new ConcurrentDictionary<Type, ICqlTable>();
+
             if (initializeTables)
                 InitializeTables();
         }
@@ -108,7 +116,13 @@ namespace CqlSharp.Linq
                 var propertyType = property.PropertyType;
                 if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(CqlTable<>))
                 {
-                    var table = Activator.CreateInstance(propertyType, this);
+                    //create new table object
+                    var table = (ICqlTable)Activator.CreateInstance(propertyType, this);
+
+                    //add it to the list of known tables
+                    table = _tables.GetOrAdd(table.Type, table);
+
+                    //set the property
                     property.SetValue(this, table);
                 }
             }
@@ -119,9 +133,14 @@ namespace CqlSharp.Linq
         /// </summary>
         /// <typeparam name="T">type that represents the values in the table</typeparam>
         /// <returns>a CqlTable</returns>
-        public CqlTable<T> GetTable<T>()
+        public CqlTable<T> GetTable<T>() where T : class, new()
         {
-            return new CqlTable<T>(this);
+            return (CqlTable<T>)_tables.GetOrAdd(typeof(T), new CqlTable<T>(this));
+        }
+
+        public void SaveChanges()
+        {
+            throw new NotImplementedException();
         }
 
         private object Execute(Expression expression)
@@ -278,5 +297,7 @@ namespace CqlSharp.Linq
         }
 
         #endregion
+
+
     }
 }

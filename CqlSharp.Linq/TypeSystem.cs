@@ -16,6 +16,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Numerics;
 
 namespace CqlSharp.Linq
 {
@@ -120,6 +122,56 @@ namespace CqlSharp.Linq
                 return false;
 
             return true;
+        }
+
+        /// <summary>
+        /// Translates the object to its Cql string representation.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        /// <exception cref="CqlLinqException">Unable to translate term to a string representation</exception>
+        public static string ToStringValue(object value, CqlType type)
+        {
+            switch (type)
+            {
+                case CqlType.Text:
+                case CqlType.Varchar:
+                case CqlType.Ascii:
+                    var str = (string)value;
+                    return "'" + str.Replace("'", "''") + "'";
+
+                case CqlType.Boolean:
+                    return ((bool)value) ? "true" : "false";
+
+                case CqlType.Decimal:
+                case CqlType.Double:
+                case CqlType.Float:
+                    var culture = CultureInfo.InvariantCulture;
+                    return string.Format(culture, "{0:E}", value);
+
+                case CqlType.Counter:
+                case CqlType.Bigint:
+                case CqlType.Int:
+                    return string.Format("{0:D}", value);
+
+                case CqlType.Timeuuid:
+                case CqlType.Uuid:
+                    return ((Guid)value).ToString("D");
+
+                case CqlType.Varint:
+                    return ((BigInteger)value).ToString("D");
+
+                case CqlType.Timestamp:
+                    long timestamp = ((DateTime)value).ToTimestamp();
+                    return string.Format("{0:D}", timestamp);
+
+                case CqlType.Blob:
+                    return ((byte[])value).ToHex("0x");
+
+                default:
+                    throw new CqlLinqException("Unable to translate term to a string representation");
+            }
         }
     }
 }

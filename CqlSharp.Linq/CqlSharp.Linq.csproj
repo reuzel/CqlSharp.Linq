@@ -62,9 +62,12 @@
     <Compile Include="Expressions\TermExpression.cs" />
     <Compile Include="ICqlTable.cs" />
     <Compile Include="IProjectionReader.cs" />
-    <Compile Include="Mutations\EntityComparer.cs" />
-    <Compile Include="Mutations\EntityEntry.cs" />
-    <Compile Include="Mutations\EntityState.cs" />
+    <Compile Include="Mutations\CqlDmlBuilder.cs" />
+    <Compile Include="Mutations\IMutationTracker.cs" />
+    <Compile Include="Mutations\ITrackedObject.cs" />
+    <Compile Include="Mutations\ObjectKey.cs" />
+    <Compile Include="Mutations\TrackedObject.cs" />
+    <Compile Include="Mutations\ObjectState.cs" />
     <Compile Include="Mutations\MutationTracker.cs" />
     <Compile Include="ProjectionReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

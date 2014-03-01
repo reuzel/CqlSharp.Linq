@@ -209,7 +209,7 @@ namespace CqlSharp.Linq.Translation
                     break;
 
                 case CqlExpressionType.Constant:
-                    builder.Append(ToStringValue(term.Value, term.Type));
+                    builder.Append(TypeSystem.ToStringValue(term.Value, term.Type));
                     break;
 
                 case CqlExpressionType.List:
@@ -254,48 +254,7 @@ namespace CqlSharp.Linq.Translation
             return term;
         }
 
-        private string ToStringValue(object value, Type type)
-        {
-            switch (type.ToCqlType())
-            {
-                case CqlType.Text:
-                case CqlType.Varchar:
-                case CqlType.Ascii:
-                    var str = (string)value;
-                    return "'" + str.Replace("'", "''") + "'";
 
-                case CqlType.Boolean:
-                    return ((bool)value) ? "true" : "false";
-
-                case CqlType.Decimal:
-                case CqlType.Double:
-                case CqlType.Float:
-                    var culture = CultureInfo.InvariantCulture;
-                    return string.Format(culture, "{0:E}", value);
-
-                case CqlType.Counter:
-                case CqlType.Bigint:
-                case CqlType.Int:
-                    return string.Format("{0:D}", value);
-
-                case CqlType.Timeuuid:
-                case CqlType.Uuid:
-                    return ((Guid)value).ToString("D");
-
-                case CqlType.Varint:
-                    return ((BigInteger)value).ToString("D");
-
-                case CqlType.Timestamp:
-                    long timestamp = ((DateTime)value).ToTimestamp();
-                    return string.Format("{0:D}", timestamp);
-
-                case CqlType.Blob:
-                    return ((byte[])value).ToHex("0x");
-
-                default:
-                    throw new CqlLinqException("Unable to translate term to a string representation");
-            }
-        }
 
         public override Expression VisitOrdering(OrderingExpression ordering)
         {

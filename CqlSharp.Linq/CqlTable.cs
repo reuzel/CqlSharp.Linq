@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Mutations;
 using CqlSharp.Serialization;
 using System;
 using System.Collections;
@@ -30,6 +31,7 @@ namespace CqlSharp.Linq
     {
         private readonly CqlContext _context;
         private readonly Expression _expression;
+        private readonly MutationTracker<T> _mutations;
 
         public CqlTable(CqlContext context)
         {
@@ -38,6 +40,7 @@ namespace CqlSharp.Linq
 
             _context = context;
             _expression = Expression.Constant(this);
+            _mutations = new MutationTracker<T>(this);
         }
 
         public CqlTable(CqlContext context, Expression expression)
@@ -50,7 +53,44 @@ namespace CqlSharp.Linq
 
             _context = context;
             _expression = expression;
+            _mutations = new MutationTracker<T>(this);
         }
+
+        #region Change Tracking
+
+        internal MutationTracker<T> MutationTracker
+        {
+            get { return _mutations; }
+        }
+
+        public T Create()
+        {
+            var entity = new T();
+            _mutations.Attach(entity, ObjectState.Added);
+            return entity;
+        }
+
+        public bool Attach(T entity)
+        {
+            return Attach(entity, ObjectState.Unchanged);
+        }
+
+        public bool Detach(T entity)
+        {
+            return _mutations.Detach(entity);
+        }
+
+        public void DeleteOnSubmit(T entity)
+        {
+            _mutations.Delete(entity);
+        }
+
+        public void InsertOnSubmit(T entity)
+        {
+            _mutations.Attach(entity, ObjectState.Added);
+        }
+
+        #endregion
 
         #region ICqlTable Members
 
