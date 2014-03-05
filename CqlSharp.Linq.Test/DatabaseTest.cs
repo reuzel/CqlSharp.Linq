@@ -71,22 +71,22 @@ namespace CqlSharp.Linq.Test
         [ClassCleanup]
         public static void Cleanup()
         {
-            //const string dropCql = @"drop keyspace linqtest;";
+            const string dropCql = @"drop keyspace linqtest;";
 
-            //using (var connection = new CqlConnection(ConnectionString))
-            //{
-            //    connection.Open();
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
 
-            //    try
-            //    {
-            //        var drop = new CqlCommand(connection, dropCql);
-            //        drop.ExecuteNonQuery();
-            //    }
-            //    catch (InvalidException)
-            //    {
-            //        //ignore
-            //    }
-            //}
+                try
+                {
+                    var drop = new CqlCommand(connection, dropCql);
+                    drop.ExecuteNonQuery();
+                }
+                catch (InvalidException)
+                {
+                    //ignore
+                }
+            }
 
             CqlConnection.ShutdownAll();
         }

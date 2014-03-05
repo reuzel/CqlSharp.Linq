@@ -41,5 +41,13 @@ namespace CqlSharp.Linq
         /// </summary>
         /// <value> The type. </value>
         Type Type { get; }
+
+        /// <summary>
+        /// Gets the context this table instance belongs to.
+        /// </summary>
+        /// <value>
+        /// The context.
+        /// </value>
+        CqlContext Context { get; }
     }
 }

@@ -30,9 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CqlSharp, Version=0.31.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\CqlSharp.0.31.0.0\lib\net45\CqlSharp.dll</HintPath>
+    <Reference Include="CqlSharp">
+      <HintPath>..\packages\CqlSharp.0.33.0.0\lib\net45\CqlSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -63,8 +62,7 @@
     <Compile Include="ICqlTable.cs" />
     <Compile Include="IProjectionReader.cs" />
     <Compile Include="Mutations\CqlDmlBuilder.cs" />
-    <Compile Include="Mutations\IMutationTracker.cs" />
-    <Compile Include="Mutations\ITrackedObject.cs" />
+    <Compile Include="Mutations\CqlObjectComparer.cs" />
     <Compile Include="Mutations\ObjectKey.cs" />
     <Compile Include="Mutations\TrackedObject.cs" />
     <Compile Include="Mutations\ObjectState.cs" />
@@ -72,6 +70,7 @@
     <Compile Include="ProjectionReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CqlQueryable.cs" />
+    <Compile Include="CqlQueryProvider.cs" />
     <Compile Include="Translation\BuilderBase.cs" />
     <Compile Include="Translation\CqlTextBuilder.cs" />
     <Compile Include="Translation\ExpressionExtensions.cs" />

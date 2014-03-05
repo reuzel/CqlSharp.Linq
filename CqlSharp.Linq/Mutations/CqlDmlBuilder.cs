@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
 using System;
 using System.Linq;
 using System.Text;
+using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {
@@ -85,7 +85,7 @@ namespace CqlSharp.Linq.Mutations
         private static void TranslateUpdationIdValPairs(StringBuilder builder, TrackedObject<TEntity> trackedObject)
         {
             bool first = true;
-            foreach (var column in trackedObject.ChangedColumns)
+            foreach (CqlColumnInfo<TEntity> column in trackedObject.ChangedColumns)
             {
                 if (!first)
                     builder.Append(", ");

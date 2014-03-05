@@ -31,19 +31,17 @@ namespace CqlSharp.Linq
     {
         private readonly CqlContext _context;
         private readonly Expression _expression;
-        private readonly MutationTracker<T> _mutations;
 
-        public CqlTable(CqlContext context)
+        internal CqlTable(CqlContext context)
         {
             if (context == null)
                 throw new ArgumentNullException("context");
 
             _context = context;
             _expression = Expression.Constant(this);
-            _mutations = new MutationTracker<T>(this);
         }
 
-        public CqlTable(CqlContext context, Expression expression)
+        internal CqlTable(CqlContext context, Expression expression)
         {
             if (context == null)
                 throw new ArgumentNullException("context");
@@ -53,42 +51,77 @@ namespace CqlSharp.Linq
 
             _context = context;
             _expression = expression;
-            _mutations = new MutationTracker<T>(this);
+        }
+
+        /// <summary>
+        /// Gets the context this table instance belongs to.
+        /// </summary>
+        /// <value>
+        /// The context.
+        /// </value>
+        public CqlContext Context
+        {
+            get { return _context; }
         }
 
         #region Change Tracking
 
-        internal MutationTracker<T> MutationTracker
+        /// <summary>
+        /// Gets the objects that are tracked as part of this table
+        /// </summary>
+        /// <value>
+        /// The local.
+        /// </value>
+        public IEnumerable<T> Local
         {
-            get { return _mutations; }
-        }
-
-        public T Create()
-        {
-            var entity = new T();
-            _mutations.Attach(entity, ObjectState.Added);
-            return entity;
+            get { return _context.MutationTracker.Entries<T>().Select(to => to.Object); }
         }
 
         public bool Attach(T entity)
         {
-            return Attach(entity, ObjectState.Unchanged);
+            return _context.MutationTracker.Attach(this, entity);
         }
 
         public bool Detach(T entity)
         {
-            return _mutations.Detach(entity);
+            return _context.MutationTracker.Detach(entity);
         }
 
-        public void DeleteOnSubmit(T entity)
+        public void Delete(T entity)
         {
-            _mutations.Delete(entity);
+            _context.MutationTracker.Delete(this, entity);
         }
 
-        public void InsertOnSubmit(T entity)
+        public void Add(T entity)
         {
-            _mutations.Attach(entity, ObjectState.Added);
+            _context.MutationTracker.AddObject(this, entity);
         }
+
+        public void AddRange(IEnumerable<T> entities)
+        {
+            foreach (var entity in entities)
+                _context.MutationTracker.AddObject(this, entity);
+        }
+
+        public T Find(params object[] keyValues)
+        {
+            var key = ObjectKey.Create<T>(keyValues);
+
+            TrackedObject trackedObject;
+            if (_context.MutationTracker.TryGetTrackedObject(key, out trackedObject))
+            {
+                trackedObject = new TrackedObject<T>(this, key.GetKeyValues<T>(), default(T), ObjectState.Detached);
+                trackedObject.Reload();
+                _context.MutationTracker.AddEntry((TrackedObject<T>)trackedObject);
+            }
+
+            if (trackedObject.State != ObjectState.Detached)
+                return (T)trackedObject.Object;
+
+            return default(T);
+        }
+
+
 
         #endregion
 
@@ -158,7 +191,7 @@ namespace CqlSharp.Linq
 
         public IQueryProvider Provider
         {
-            get { return _context; }
+            get { return _context.CqlQueryProvider; }
         }
 
         #endregion

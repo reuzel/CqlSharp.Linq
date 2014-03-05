@@ -16,10 +16,8 @@
 using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Numerics;
 using System.Text;
 
 namespace CqlSharp.Linq.Translation
@@ -209,7 +207,7 @@ namespace CqlSharp.Linq.Translation
                     break;
 
                 case CqlExpressionType.Constant:
-                    builder.Append(TypeSystem.ToStringValue(term.Value, term.Type));
+                    builder.Append(TypeSystem.ToStringValue(term.Value, term.Type.ToCqlType()));
                     break;
 
                 case CqlExpressionType.List:

@@ -1,137 +1,169 @@
-﻿using CqlSharp.Serialization;
-using System;
+﻿// CqlSharp.Linq - CqlSharp.Linq
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace CqlSharp.Linq.Mutations
 {
     /// <summary>
-    /// Tracks the mutation of a specific table
+    ///   Tracks the mutation of a specific table
     /// </summary>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    internal class MutationTracker<TEntity> : IMutationTracker
+    public class MutationTracker
     {
-        private readonly ConcurrentDictionary<ObjectKey<TEntity>, TrackedObject<TEntity>> _trackedObjects;
-        private readonly CqlTable<TEntity> _table;
+        /// <summary>
+        ///   The tracked objects
+        /// </summary>
+        private readonly ConcurrentDictionary<ObjectKey, TrackedObject> _trackedObjects;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MutationTracker{TEntity}"/> class.
+        ///   Initializes a new instance of the <see cref="MutationTracker" /> class.
         /// </summary>
-        /// <param name="table">The table.</param>
-        public MutationTracker(CqlTable<TEntity> table)
+        internal MutationTracker()
         {
-            _table = table;
-            _trackedObjects = new ConcurrentDictionary<ObjectKey<TEntity>, TrackedObject<TEntity>>();
+            _trackedObjects = new ConcurrentDictionary<ObjectKey, TrackedObject>();
+        }
+
+
+        /// <summary>
+        ///   Adds a new tracked entry to the mutation tracking list
+        /// </summary>
+        /// <typeparam name="TEntity"> The type of the entity. </typeparam>
+        /// <param name="trackedObject"> The tracked object. </param>
+        /// <returns> </returns>
+        internal bool AddEntry<TEntity>(TrackedObject<TEntity> trackedObject)
+        {
+            var key = ObjectKey.Create(trackedObject.Original);
+            return _trackedObjects.TryAdd(key, trackedObject);
         }
 
         /// <summary>
-        /// Adds the object.
+        ///   Adds the object.
         /// </summary>
-        /// <param name="entity">The entity.</param>
-        /// <returns></returns>
-        public bool AddObject(TEntity entity)
+        /// <param name="table"> table to which entity belongs </param>
+        /// <param name="entity"> The entity. </param>
+        /// <returns> </returns>
+        internal bool AddObject<TEntity>(CqlTable<TEntity> table, TEntity entity)
         {
             //clone the key values of the entity
-            var keyValues = Clone(entity, true);
+            var keyValues = entity.Clone(keyOnly: true);
 
             //create a new tracked object
-            var entry = new TrackedObject<TEntity>(_table, entity, keyValues, ObjectState.Added);
+            var entry = new TrackedObject<TEntity>(table, entity, keyValues, ObjectState.Added);
 
             //try to add the object
-            return _trackedObjects.TryAdd(new ObjectKey<TEntity>(keyValues), entry);
+            return _trackedObjects.TryAdd(ObjectKey.Create(keyValues), entry);
         }
 
         /// <summary>
-        /// Attaches the specified entity.
+        ///   Attaches the specified entity.
         /// </summary>
-        /// <param name="entity">The entity.</param>
-        /// <returns></returns>
-        public bool Attach(TEntity entity)
+        /// <param name="table"> table to which entity belongs </param>
+        /// <param name="entity"> The entity. </param>
+        /// <returns> </returns>
+        internal bool Attach<TEntity>(CqlTable<TEntity> table, TEntity entity)
         {
             //clone the entity, such that changes can be detected (and keys keep unchanged)
-            var baseValues = Clone(entity);
+            var baseValues = entity.Clone();
 
             //create a new tracked object
-            var entry = new TrackedObject<TEntity>(_table, entity, baseValues, ObjectState.Unchanged);
+            var entry = new TrackedObject<TEntity>(table, entity, baseValues, ObjectState.Unchanged);
 
             //try to add the object
-            return _trackedObjects.TryAdd(new ObjectKey<TEntity>(baseValues), entry);
+            return _trackedObjects.TryAdd(ObjectKey.Create(baseValues), entry);
         }
 
         /// <summary>
-        /// Detaches the specified entity.
+        ///   Detaches the specified entity.
         /// </summary>
-        /// <param name="entity">The entity.</param>
-        /// <returns></returns>
-        public bool Detach(TEntity entity)
+        /// <param name="entity"> The entity. </param>
+        /// <returns> </returns>
+        internal bool Detach<TEntity>(TEntity entity)
         {
-            TrackedObject<TEntity> entry;
-            return _trackedObjects.TryRemove(new ObjectKey<TEntity>(entity), out entry);
+            TrackedObject entry;
+            return _trackedObjects.TryRemove(ObjectKey.Create(entity), out entry);
         }
 
         /// <summary>
-        /// Deletes the specified entity.
+        ///   Deletes the specified entity.
         /// </summary>
-        /// <param name="entity">The entity.</param>
-        public void Delete(TEntity entity)
+        /// <param name="table"> the table to which the entity belongs </param>
+        /// <param name="entity"> The entity. </param>
+        internal void Delete<TEntity>(CqlTable<TEntity> table, TEntity entity)
         {
             //clone the key values of the entity
-            var keyValues = Clone(entity, true);
+            var keyValues = entity.Clone(keyOnly: true);
 
             //create a new tracked object
-            var entry = new TrackedObject<TEntity>(_table, keyValues, default(TEntity), ObjectState.Deleted);
+            var entry = new TrackedObject<TEntity>(table, keyValues, default(TEntity), ObjectState.Deleted);
 
             //set the object to deleted
-            _trackedObjects[new ObjectKey<TEntity>(keyValues)] = entry;
+            _trackedObjects[ObjectKey.Create(keyValues)] = entry;
         }
 
         /// <summary>
-        /// Gets the changed objects.
+        ///   Gets the changed objects.
         /// </summary>
-        /// <returns></returns>
-        public IEnumerable<ITrackedObject> GetChangedObjects()
+        /// <returns> </returns>
+        public IEnumerable<TrackedObject> Entries()
         {
-            return _trackedObjects.Values.Where(entry => entry.DetectChanges());
+            return _trackedObjects.Values;
         }
 
         /// <summary>
-        /// Clones the specified entity.
+        ///   Gets the changed objects of a certain type.
         /// </summary>
-        /// <param name="entity">The entity.</param>
-        /// <param name="keyOnly">clones the key values only</param>
-        /// <returns></returns>
-        private TEntity Clone(TEntity entity, bool keyOnly = false)
+        /// <returns> </returns>
+        public IEnumerable<TrackedObject<TEntity>> Entries<TEntity>()
         {
-            var clone = (TEntity)Activator.CreateInstance(typeof(TEntity), BindingFlags.Instance | BindingFlags.Public);
-            foreach (CqlColumnInfo<TEntity> column in ObjectAccessor<TEntity>.Instance.Columns)
+            return _trackedObjects.Values.OfType<TrackedObject<TEntity>>();
+        }
+
+        /// <summary>
+        ///   Tries to the get tracked object.
+        /// </summary>
+        /// <param name="key"> The key. </param>
+        /// <param name="trackedObject"> The tracked object. </param>
+        /// <returns> true if an object with a certain key was tracked </returns>
+        internal bool TryGetTrackedObject(ObjectKey key, out TrackedObject trackedObject)
+        {
+            return _trackedObjects.TryGetValue(key, out trackedObject);
+        }
+
+        /// <summary>
+        ///   Detects any changes made to tracked objects
+        /// </summary>
+        /// <returns> true if any object contains a change to be committed to the server </returns>
+        public bool DetectChanges()
+        {
+            bool hasChanges = false;
+            foreach (var trackedObject in _trackedObjects.Values)
             {
-                //make sure value can be cloned
-                if (column.ReadFunction == null || column.WriteFunction == null) continue;
-
-                //skip if column is not a key column, and only keys need to be cloned
-                if (keyOnly && !column.IsPartitionKey && !column.IsClusteringKey)
-                    continue;
-
-                //get the value
-                var value = column.ReadFunction(entity);
-
-                //mandate that all key values are set
-                if (value == null && (column.IsPartitionKey || column.IsClusteringKey))
-                    throw new CqlLinqException("Can not track an object who's key values are not completely set");
-
-                //if the column is a collection type, clone the collection
-                if (column.CqlType == CqlType.List || column.CqlType == CqlType.Map || column.CqlType == CqlType.Set)
-                {
-                    value = Activator.CreateInstance(column.Type, value);
-                }
-
-                //copy the value into the clone
-                column.WriteFunction(clone, value);
+                hasChanges |= trackedObject.DetectChanges();
             }
+            return hasChanges;
+        }
 
-            return clone;
+        /// <summary>
+        ///   Detects any changes made to tracked objects
+        /// </summary>
+        /// <returns> true if any object contains a change to be committed to the server </returns>
+        public bool HasChanges()
+        {
+            return DetectChanges();
         }
     }
 }

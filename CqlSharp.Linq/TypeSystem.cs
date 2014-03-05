@@ -13,11 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
+using System.Reflection;
 
 namespace CqlSharp.Linq
 {
@@ -124,6 +126,61 @@ namespace CqlSharp.Linq
             return true;
         }
 
+
+        /// <summary>
+        /// Clones the specified entity.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <param name="keyOnly">clones the key values only</param>
+        /// <returns></returns>
+        internal static TEntity Clone<TEntity>(this TEntity entity, bool keyOnly = false)
+        {
+            var clone = (TEntity)Activator.CreateInstance(typeof(TEntity), BindingFlags.Instance | BindingFlags.Public);
+            entity.CopyTo(clone, keyOnly);
+            return clone;
+        }
+
+        /// <summary>
+        /// Copies the values from one entity to another
+        /// </summary>
+        /// <param name="source">The entity.</param>
+        /// <param name="destination">the entity </param>
+        /// <param name="keyOnly">clones the key values only</param>
+        /// <returns></returns>
+        internal static void CopyTo<TEntity>(this TEntity source, TEntity destination, bool keyOnly = false)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            if (destination == null)
+                throw new ArgumentNullException("destination");
+
+            foreach (CqlColumnInfo<TEntity> column in ObjectAccessor<TEntity>.Instance.Columns)
+            {
+                //make sure value can be cloned
+                if (column.ReadFunction == null || column.WriteFunction == null) continue;
+
+                //skip if column is not a key column, and only keys need to be cloned
+                if (keyOnly && !column.IsPartitionKey && !column.IsClusteringKey)
+                    continue;
+
+                //get the value
+                var value = column.ReadFunction(source);
+
+                //mandate that all key values are set
+                if (value == null && (column.IsPartitionKey || column.IsClusteringKey))
+                    throw new CqlLinqException("Can not track an object who's key values are not completely set");
+
+                //if the column is a collection type, clone the collection
+                if (column.CqlType == CqlType.List || column.CqlType == CqlType.Map || column.CqlType == CqlType.Set)
+                {
+                    value = Activator.CreateInstance(column.Type, value);
+                }
+
+                //copy the value into the clone
+                column.WriteFunction(destination, value);
+            }
+        }
         /// <summary>
         /// Translates the object to its Cql string representation.
         /// </summary>
