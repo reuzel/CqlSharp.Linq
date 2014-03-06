@@ -14,9 +14,9 @@
 // limitations under the License.
 
 using CqlSharp.Linq.Mutations;
+using CqlSharp.Linq.Query;
 using CqlSharp.Serialization;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -27,30 +27,25 @@ namespace CqlSharp.Linq
     ///   A table in a Cassandra Keyspace (database)
     /// </summary>
     /// <typeparam name="T"> </typeparam>
-    public class CqlTable<T> : IOrderedQueryable<T>, ICqlTable
+    public class CqlTable<T> : CqlQuery<T>, ICqlTable  where T: class, new()
     {
         private readonly CqlContext _context;
-        private readonly Expression _expression;
 
-        internal CqlTable(CqlContext context)
+        internal CqlTable(CqlContext context) : base (context.CqlQueryProvider)
         {
             if (context == null)
                 throw new ArgumentNullException("context");
 
             _context = context;
-            _expression = Expression.Constant(this);
+            
         }
 
-        internal CqlTable(CqlContext context, Expression expression)
+        internal CqlTable(CqlContext context, Expression expression) : base(context.CqlQueryProvider, expression)
         {
             if (context == null)
                 throw new ArgumentNullException("context");
 
-            if (expression == null)
-                throw new ArgumentNullException("expression");
-
             _context = context;
-            _expression = expression;
         }
 
         /// <summary>
@@ -163,35 +158,6 @@ namespace CqlSharp.Linq
         public Type Type
         {
             get { return ObjectAccessor<T>.Instance.Type; }
-        }
-
-        #endregion
-
-        #region IOrderedQueryable<T> Members
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return ((IEnumerable<T>)Provider.Execute(_expression)).GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public Type ElementType
-        {
-            get { return typeof(T); }
-        }
-
-        public Expression Expression
-        {
-            get { return _expression; }
-        }
-
-        public IQueryProvider Provider
-        {
-            get { return _context.CqlQueryProvider; }
         }
 
         #endregion

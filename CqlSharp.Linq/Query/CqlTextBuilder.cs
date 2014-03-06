@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq.Translation
+namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Distills CQL Select Statement query strings from an expression tree

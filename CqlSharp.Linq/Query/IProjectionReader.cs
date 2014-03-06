@@ -15,7 +15,7 @@
 
 using System.Collections.Generic;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Provides a non-generic interface to a ProjectionReader

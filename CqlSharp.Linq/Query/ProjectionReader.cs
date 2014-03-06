@@ -17,7 +17,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Executes a CQL query and transforms the results into object using a projector

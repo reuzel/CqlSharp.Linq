@@ -18,7 +18,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq.Translation
+namespace CqlSharp.Linq.Query
 {
     internal abstract class BuilderBase : CqlExpressionVisitor
     {

@@ -44,7 +44,7 @@ namespace CqlSharp.Linq.Mutations
         /// <typeparam name="TEntity"> The type of the entity. </typeparam>
         /// <param name="trackedObject"> The tracked object. </param>
         /// <returns> </returns>
-        internal bool AddEntry<TEntity>(TrackedObject<TEntity> trackedObject)
+        internal bool AddEntry<TEntity>(TrackedObject<TEntity> trackedObject) where TEntity : class, new()
         {
             var key = ObjectKey.Create(trackedObject.Original);
             return _trackedObjects.TryAdd(key, trackedObject);
@@ -56,7 +56,7 @@ namespace CqlSharp.Linq.Mutations
         /// <param name="table"> table to which entity belongs </param>
         /// <param name="entity"> The entity. </param>
         /// <returns> </returns>
-        internal bool AddObject<TEntity>(CqlTable<TEntity> table, TEntity entity)
+        internal bool AddObject<TEntity>(CqlTable<TEntity> table, TEntity entity) where TEntity : class, new()
         {
             //clone the key values of the entity
             var keyValues = entity.Clone(keyOnly: true);
@@ -74,7 +74,7 @@ namespace CqlSharp.Linq.Mutations
         /// <param name="table"> table to which entity belongs </param>
         /// <param name="entity"> The entity. </param>
         /// <returns> </returns>
-        internal bool Attach<TEntity>(CqlTable<TEntity> table, TEntity entity)
+        internal bool Attach<TEntity>(CqlTable<TEntity> table, TEntity entity) where TEntity : class, new()
         {
             //clone the entity, such that changes can be detected (and keys keep unchanged)
             var baseValues = entity.Clone();
@@ -91,7 +91,7 @@ namespace CqlSharp.Linq.Mutations
         /// </summary>
         /// <param name="entity"> The entity. </param>
         /// <returns> </returns>
-        internal bool Detach<TEntity>(TEntity entity)
+        internal bool Detach<TEntity>(TEntity entity) where TEntity : class, new()
         {
             TrackedObject entry;
             return _trackedObjects.TryRemove(ObjectKey.Create(entity), out entry);
@@ -102,7 +102,7 @@ namespace CqlSharp.Linq.Mutations
         /// </summary>
         /// <param name="table"> the table to which the entity belongs </param>
         /// <param name="entity"> The entity. </param>
-        internal void Delete<TEntity>(CqlTable<TEntity> table, TEntity entity)
+        internal void Delete<TEntity>(CqlTable<TEntity> table, TEntity entity) where TEntity : class, new()
         {
             //clone the key values of the entity
             var keyValues = entity.Clone(keyOnly: true);
@@ -127,7 +127,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Gets the changed objects of a certain type.
         /// </summary>
         /// <returns> </returns>
-        public IEnumerable<TrackedObject<TEntity>> Entries<TEntity>()
+        public IEnumerable<TrackedObject<TEntity>> Entries<TEntity>() where TEntity : class, new()
         {
             return _trackedObjects.Values.OfType<TrackedObject<TEntity>>();
         }

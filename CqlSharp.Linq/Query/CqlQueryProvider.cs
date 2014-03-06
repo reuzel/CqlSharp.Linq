@@ -1,4 +1,4 @@
-﻿// CqlSharp.Linq - CqlSharp.Linq
+// CqlSharp.Linq - CqlSharp.Linq
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +18,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using CqlSharp.Linq.Expressions;
-using CqlSharp.Linq.Translation;
 
-namespace CqlSharp.Linq
+namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Provider for the Cql Linq queries
@@ -37,57 +35,28 @@ namespace CqlSharp.Linq
 
         private object Execute(Expression expression)
         {
-            var result = ParseExpression(expression);
-
-            //log the query
-            if (_cqlContext.Log != null)
-                _cqlContext.Log(result.Cql);
-
-#if DEBUG
-            //return default values of execution is to be skipped
-            if (_cqlContext.SkipExecute)
-            {
-                //return empty array
-                if (result.ResultFunction == null)
-                    return Array.CreateInstance(result.Projector.ReturnType, 0);
-
-                //return default value or null
-                return result.Projector.ReturnType.DefaultValue();
-            }
-#endif
-
-            Delegate projector = result.Projector.Compile();
-
-            var enm = (IProjectionReader) Activator.CreateInstance(
-                typeof (ProjectionReader<>).MakeGenericType(result.Projector.ReturnType),
-                BindingFlags.Instance | BindingFlags.Public, null,
-                new object[] {_cqlContext, result.Cql, projector},
-                null
-                                              );
-
-            if (result.ResultFunction != null)
-                return result.ResultFunction.Invoke(enm.AsObjectEnumerable());
-
-            return enm;
+            var queryPlan = CreateQueryPlan(expression);
+            return queryPlan.Execute(_cqlContext);
         }
 
-        internal ParseResult ParseExpression(Expression expression)
+        internal QueryPlan CreateQueryPlan(Expression expression)
         {
-            Debug.WriteLine("Original Expression: " + expression);
-
             //evaluate all partial expressions (get rid of reference noise)
             var cleanedExpression = PartialEvaluator.Evaluate(expression, CanBeEvaluatedLocally);
-            Debug.WriteLine("Cleaned Expression: " + cleanedExpression);
 
             //translate the expression to a cql expression and corresponding projection
             var translation = new ExpressionTranslator().Translate(cleanedExpression);
 
             //generate cql text
             var cql = new CqlTextBuilder().Build(translation.Select);
-            Debug.WriteLine("Generated CQL: " + cql);
 
             //get a projection delegate
             var projector = new ProjectorBuilder().BuildProjector(translation.Projection);
+
+            //output some debug info
+            Debug.WriteLine("Original Expression: " + expression);
+            Debug.WriteLine("Cleaned Expression: " + cleanedExpression);
+            Debug.WriteLine("Generated CQL: " + cql);
             Debug.WriteLine("Generated Projector: " + projector);
             Debug.WriteLine("Result processor: " +
                             (translation.ResultFunction != null
@@ -95,7 +64,7 @@ namespace CqlSharp.Linq
                                  : "<none>"));
 
             //return translation results
-            return new ParseResult {Cql = cql, Projector = projector, ResultFunction = translation.ResultFunction};
+            return new QueryPlan(cql, projector.Compile(), translation.ResultFunction);
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)
@@ -129,7 +98,7 @@ namespace CqlSharp.Linq
         /// <returns> </returns>
         IQueryable<TElement> IQueryProvider.CreateQuery<TElement>(Expression expression)
         {
-            return new CqlTable<TElement>(_cqlContext, expression);
+            return new CqlQuery<TElement>(this, expression);
         }
 
         /// <summary>
@@ -144,7 +113,7 @@ namespace CqlSharp.Linq
             {
                 return
                     (IQueryable)
-                    Activator.CreateInstance(typeof (CqlTable<>).MakeGenericType(elementType),
+                    Activator.CreateInstance(typeof (CqlQuery<>).MakeGenericType(elementType),
                                              new object[] {this, expression});
             }
             catch (TargetInvocationException tie)
@@ -179,17 +148,6 @@ namespace CqlSharp.Linq
         object IQueryProvider.Execute(Expression expression)
         {
             return Execute(expression);
-        }
-
-        #endregion
-
-        #region Nested type: ParseResult
-
-        internal class ParseResult
-        {
-            public string Cql { get; set; }
-            public LambdaExpression Projector { get; set; }
-            public ResultFunction ResultFunction { get; set; }
         }
 
         #endregion

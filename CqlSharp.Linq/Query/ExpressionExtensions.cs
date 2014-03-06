@@ -17,7 +17,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace CqlSharp.Linq.Translation
+namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Extensions supporting various parsing tasks

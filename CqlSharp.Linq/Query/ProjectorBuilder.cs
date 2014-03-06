@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Linq.Expressions;
 using System.Linq.Expressions;
 using System.Reflection;
+using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq.Translation
+namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Converts an expression with selector expressions to a lambda expression that takes a datareader as input.

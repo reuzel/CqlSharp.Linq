@@ -17,7 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace CqlSharp.Linq.Translation
+namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Performs evaluation & replacement of independent sub-trees

@@ -17,7 +17,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using CqlSharp.Linq.Expressions;
 
-namespace CqlSharp.Linq.Translation
+namespace CqlSharp.Linq.Query
 {
     internal class OrderBuilder : BuilderBase
     {
