@@ -23,12 +23,12 @@ namespace CqlSharp.Linq.Query
     /// <summary>
     ///   Executes a CQL query and transforms the results into object using a projector
     /// </summary>
-    /// <typeparam name="T"> </typeparam>
-    internal class ProjectionReader<T> : IEnumerable<T>, IProjectionReader
+    /// <typeparam name="TElement"> type of elements returned from a query</typeparam>
+    internal class ProjectionReader<TElement> : IEnumerable<TElement>, IProjectionReader
     {
         private readonly CqlContext _context;
         private readonly string _cql;
-        private readonly Func<CqlDataReader, T> _projector;
+        private readonly Func<CqlDataReader, TElement> _projector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
@@ -41,7 +41,7 @@ namespace CqlSharp.Linq.Query
         /// cql
         /// or
         /// projector</exception>
-        public ProjectionReader(CqlContext context, string cql, Func<CqlDataReader, T> projector)
+        public ProjectionReader(CqlContext context, string cql, Func<CqlDataReader, TElement> projector)
         {
             if (context == null) throw new ArgumentNullException("context");
             if (cql == null) throw new ArgumentNullException("cql");
@@ -58,13 +58,13 @@ namespace CqlSharp.Linq.Query
         ///   Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
-        public IEnumerator<T> GetEnumerator()
+        public IEnumerator<TElement> GetEnumerator()
         {
             using (var connection = new CqlConnection(_context.ConnectionString))
             {
                 connection.Open();
 
-                if(_context.Log!=null)_context.Log(_cql);
+                if (_context.Log != null) _context.Log(_cql);
 
                 var command = new CqlCommand(connection, _cql);
                 using (var reader = command.ExecuteReader())

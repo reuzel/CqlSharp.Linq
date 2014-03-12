@@ -139,24 +139,24 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        ///   Gets the table represented by the provided type.
+        ///   Gets the table represented by the provided entityType.
         /// </summary>
-        /// <typeparam name="T"> type that represents the values in the table </typeparam>
+        /// <typeparam name="TEntity"> type that represents the values in the table </typeparam>
         /// <returns> a CqlTable </returns>
-        public CqlTable<T> GetTable<T>() where T : class, new()
+        public CqlTable<TEntity> GetTable<TEntity>() where TEntity : class, new()
         {
-            return (CqlTable<T>)_tables.GetOrAdd(typeof(T), new CqlTable<T>(this));
+            return (CqlTable<TEntity>)_tables.GetOrAdd(typeof(TEntity), new CqlTable<TEntity>(this));
         }
 
         /// <summary>
-        /// Tries the get table for the given type.
+        /// Tries the get table for the given entityType.
         /// </summary>
-        /// <param name="type">The type.</param>
+        /// <param name="entityType">The entity type.</param>
         /// <param name="table">The table.</param>
         /// <returns></returns>
-        internal bool TryGetTable(Type type, out ICqlTable table)
+        internal bool TryGetTable(Type entityType, out ICqlTable table)
         {
-            return _tables.TryGetValue(type, out table);
+            return _tables.TryGetValue(entityType, out table);
         }
 
         /// <summary>
@@ -179,10 +179,10 @@ namespace CqlSharp.Linq
 
                     foreach (var trackedObject in MutationTracker.Entries())
                     {
-                        if (trackedObject.State != ObjectState.Unchanged)
+                        if (trackedObject.State != EntityState.Unchanged)
                         {
                             var cql = trackedObject.GetDmlStatement();
-                            if(Log!=null)Log(cql);
+                            if (Log != null) Log(cql);
 
                             var command = new CqlCommand(connection, cql, consistency);
                             command.PartitionKey.Set(trackedObject.Object);
@@ -212,10 +212,10 @@ namespace CqlSharp.Linq
 
                     foreach (var trackedObject in MutationTracker.Entries())
                     {
-                        if (trackedObject.State != ObjectState.Unchanged)
+                        if (trackedObject.State != EntityState.Unchanged)
                         {
                             var cql = trackedObject.GetDmlStatement();
-                            if(Log!=null) Log(cql);
+                            if (Log != null) Log(cql);
 
                             var command = new CqlCommand(connection, cql, consistency);
                             command.PartitionKey.Set(trackedObject.Object);

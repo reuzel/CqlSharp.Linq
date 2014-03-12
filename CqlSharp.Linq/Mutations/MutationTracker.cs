@@ -52,7 +52,7 @@ namespace CqlSharp.Linq.Mutations
         /// Returns the tracked entries
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<TrackedObject> Entries()
+        public IEnumerable<TrackedEntity> Entries()
         {
             return _tableTrackers.Values.SelectMany(tt => tt.Entries());
         }
@@ -62,7 +62,7 @@ namespace CqlSharp.Linq.Mutations
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity.</typeparam>
         /// <returns></returns>
-        public IEnumerable<TrackedObject<TEntity>> Entries<TEntity>() where TEntity : class, new()
+        public IEnumerable<TrackedEntity<TEntity>> Entries<TEntity>() where TEntity : class, new()
         {
             ITableMutationTracker mutationTracker = _tableTrackers
                 .Where(kvp => kvp.Key.Type == typeof(TEntity))
@@ -70,9 +70,9 @@ namespace CqlSharp.Linq.Mutations
                 .FirstOrDefault();
 
             if (mutationTracker != null)
-                return mutationTracker.Entries().Cast<TrackedObject<TEntity>>();
+                return mutationTracker.Entries().Cast<TrackedEntity<TEntity>>();
 
-            return Enumerable.Empty<TrackedObject<TEntity>>();
+            return Enumerable.Empty<TrackedEntity<TEntity>>();
         }
 
         /// <summary>

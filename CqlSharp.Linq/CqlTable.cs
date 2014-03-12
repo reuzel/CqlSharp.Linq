@@ -25,8 +25,8 @@ namespace CqlSharp.Linq
     /// <summary>
     ///   A table in a Cassandra Keyspace (database)
     /// </summary>
-    /// <typeparam name="T"> </typeparam>
-    public class CqlTable<T> : CqlQuery<T>, ICqlTable where T : class, new()
+    /// <typeparam name="TEntity">type of entities stored in this table</typeparam>
+    public class CqlTable<TEntity> : CqlQuery<TEntity>, ICqlTable where TEntity : class, new()
     {
         private readonly CqlContext _context;
 
@@ -58,62 +58,90 @@ namespace CqlSharp.Linq
         /// <value>
         /// The local.
         /// </value>
-        public IEnumerable<T> Local
+        public IEnumerable<TEntity> Local
         {
-            get { return _context.MutationTracker.GetTracker(this).Entries().Select(to => (T)to.Object); }
+            get { return _context.MutationTracker.GetTracker(this).Entries().Select(to => (TEntity)to.Object); }
         }
 
-        public bool Attach(T entity)
+        /// <summary>
+        /// Adds the specified entity in added state.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        public void Add(TEntity entity)
+        {
+            _context.MutationTracker.GetTracker(this).Add(entity);
+        }
+
+        /// <summary>
+        /// Attaches the specified entity, in a unmodified state
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <returns></returns>
+        public bool Attach(TEntity entity)
         {
             return _context.MutationTracker.GetTracker(this).Attach(entity);
         }
 
-        public bool Detach(T entity)
+        /// <summary>
+        /// Detaches the specified entity fromt the current context.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <returns></returns>
+        public bool Detach(TEntity entity)
         {
             return _context.MutationTracker.GetTracker(this).Detach(entity);
         }
 
-        public void Delete(T entity)
+        /// <summary>
+        /// Marks the specified entity as to-be deleted
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        public void Delete(TEntity entity)
         {
             _context.MutationTracker.GetTracker(this).Delete(entity);
         }
 
-        public void Add(T entity)
+        /// <summary>
+        /// Adds a range of entities, in an added state.
+        /// </summary>
+        /// <param name="entities">The entities.</param>
+        public void AddRange(IEnumerable<TEntity> entities)
         {
-            _context.MutationTracker.GetTracker(this).AddObject(entity);
-        }
-
-        public void AddRange(IEnumerable<T> entities)
-        {
-            TableMutationTracker<T> mutationTracker = _context.MutationTracker.GetTracker(this);
+            TableMutationTracker<TEntity> mutationTracker = _context.MutationTracker.GetTracker(this);
             foreach (var entity in entities)
-                mutationTracker.AddObject(entity);
+                mutationTracker.Add(entity);
         }
 
-        public T Find(params object[] keyValues)
+        /// <summary>
+        /// Finds an entity based on the specified key values. If this entity is already
+        /// tracked, the tracked entity is returned (and no database call is made).
+        /// </summary>
+        /// <param name="keyValues">The key values.</param>
+        /// <returns></returns>
+        public TEntity Find(params object[] keyValues)
         {
-            var key = ObjectKey.Create<T>(keyValues);
+            var key = EntityKey.Create<TEntity>(keyValues);
 
             var tracker = _context.MutationTracker.GetTracker(this);
 
-            TrackedObject<T> trackedObject;
-            if (!tracker.TryGetTrackedObject(key, out trackedObject))
+            TrackedEntity<TEntity> trackedEntity;
+            if (!tracker.TryGetTrackedObject(key, out trackedEntity))
             {
                 //object not found, create a tracked object
-                trackedObject = new TrackedObject<T>(this, key.GetKeyValues<T>(), default(T), ObjectState.Detached);
+                trackedEntity = new TrackedEntity<TEntity>(this, key.GetKeyValues<TEntity>(), default(TEntity), EntityState.Detached);
 
                 //load any existing values from the database
-                trackedObject.Reload();
+                trackedEntity.Reload();
 
                 //add the object, or return existing one if we were raced
-                trackedObject = tracker.GetOrAdd(trackedObject);
+                trackedEntity = tracker.GetOrAdd(trackedEntity);
             }
 
             //check state
-            if (trackedObject.State != ObjectState.Detached)
-                return trackedObject.Object;
+            if (trackedEntity.State != EntityState.Detached)
+                return trackedEntity.Object;
 
-            return default(T);
+            return default(TEntity);
         }
 
 
@@ -128,7 +156,7 @@ namespace CqlSharp.Linq
         /// <value> The column names. </value>
         public IEnumerable<ICqlColumnInfo> Columns
         {
-            get { return ObjectAccessor<T>.Instance.Columns; }
+            get { return ObjectAccessor<TEntity>.Instance.Columns; }
         }
 
         /// <summary>
@@ -139,10 +167,10 @@ namespace CqlSharp.Linq
         {
             get
             {
-                var accessor = ObjectAccessor<T>.Instance;
+                var accessor = ObjectAccessor<TEntity>.Instance;
 
                 if (!accessor.IsTableSet)
-                    throw new CqlLinqException("Name of the Table can not be derived for type " + accessor.Type.FullName);
+                    throw new CqlLinqException("Name of the Table can not be derived for entityType " + accessor.Type.FullName);
 
                 if (accessor.IsKeySpaceSet)
                     return accessor.Keyspace + "." + accessor.Table;
@@ -154,10 +182,10 @@ namespace CqlSharp.Linq
         /// <summary>
         ///   Gets the type of entity contained by this table.
         /// </summary>
-        /// <value> The type. </value>
+        /// <value> The entityType. </value>
         public Type Type
         {
-            get { return ObjectAccessor<T>.Instance.Type; }
+            get { return ObjectAccessor<TEntity>.Instance.Type; }
         }
 
         #endregion

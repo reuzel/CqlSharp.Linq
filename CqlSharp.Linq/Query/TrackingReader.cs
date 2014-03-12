@@ -5,11 +5,11 @@ using System.Linq;
 
 namespace CqlSharp.Linq.Query
 {
-    internal class TrackingReader<T> : IEnumerable<T>, IProjectionReader where T : class, new()
+    internal class TrackingReader<TEntity> : IEnumerable<TEntity>, IProjectionReader where TEntity : class, new()
     {
         private readonly CqlContext _context;
         private readonly string _cql;
-        private readonly Func<CqlDataReader, T> _projector;
+        private readonly Func<CqlDataReader, TEntity> _projector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
@@ -22,7 +22,7 @@ namespace CqlSharp.Linq.Query
         /// cql
         /// or
         /// projector</exception>
-        public TrackingReader(CqlContext context, string cql, Func<CqlDataReader, T> projector)
+        public TrackingReader(CqlContext context, string cql, Func<CqlDataReader, TEntity> projector)
         {
             if (context == null) throw new ArgumentNullException("context");
             if (cql == null) throw new ArgumentNullException("cql");
@@ -39,9 +39,9 @@ namespace CqlSharp.Linq.Query
         ///   Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
-        public IEnumerator<T> GetEnumerator()
+        public IEnumerator<TEntity> GetEnumerator()
         {
-            var table = _context.GetTable<T>();
+            var table = _context.GetTable<TEntity>();
             var tracker = _context.MutationTracker.GetTracker(table);
 
             using (var connection = new CqlConnection(_context.ConnectionString))

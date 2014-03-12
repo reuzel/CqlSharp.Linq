@@ -14,7 +14,7 @@ namespace CqlSharp.Linq.Mutations
         /// <summary>
         ///   The tracked objects
         /// </summary>
-        private readonly ConcurrentDictionary<ObjectKey, TrackedObject<TEntity>> _trackedObjects;
+        private readonly ConcurrentDictionary<EntityKey, TrackedEntity<TEntity>> _trackedObjects;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="MutationTracker" /> class.
@@ -22,24 +22,24 @@ namespace CqlSharp.Linq.Mutations
         internal TableMutationTracker(CqlTable<TEntity> table)
         {
             _table = table;
-            _trackedObjects = new ConcurrentDictionary<ObjectKey, TrackedObject<TEntity>>();
+            _trackedObjects = new ConcurrentDictionary<EntityKey, TrackedEntity<TEntity>>();
         }
 
         /// <summary>
-        ///   Adds the object.
+        ///   Adds the entity in an Added state.
         /// </summary>
         /// <param name="entity"> The entity. </param>
         /// <returns> </returns>
-        internal bool AddObject(TEntity entity)
+        internal bool Add(TEntity entity)
         {
             //clone the key values of the entity
             var keyValues = entity.Clone(keyOnly: true);
 
             //create a new tracked object
-            var entry = new TrackedObject<TEntity>(_table, entity, keyValues, ObjectState.Added);
+            var entry = new TrackedEntity<TEntity>(_table, entity, default(TEntity), EntityState.Added);
 
             //try to add the object
-            return _trackedObjects.TryAdd(ObjectKey.Create(keyValues), entry);
+            return _trackedObjects.TryAdd(EntityKey.Create(keyValues), entry);
         }
 
         /// <summary>
@@ -53,10 +53,10 @@ namespace CqlSharp.Linq.Mutations
             var baseValues = entity.Clone();
 
             //create a new tracked object
-            var entry = new TrackedObject<TEntity>(_table, entity, baseValues, ObjectState.Unchanged);
+            var entry = new TrackedEntity<TEntity>(_table, entity, baseValues, EntityState.Unchanged);
 
             //try to add the object
-            return _trackedObjects.TryAdd(ObjectKey.Create(baseValues), entry);
+            return _trackedObjects.TryAdd(EntityKey.Create(baseValues), entry);
         }
 
         /// <summary>
@@ -65,8 +65,8 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> </returns>
         internal bool Detach(TEntity entity)
         {
-            TrackedObject<TEntity> entry;
-            return _trackedObjects.TryRemove(ObjectKey.Create(entity), out entry);
+            TrackedEntity<TEntity> entry;
+            return _trackedObjects.TryRemove(EntityKey.Create(entity), out entry);
         }
 
         /// <summary>
@@ -79,10 +79,10 @@ namespace CqlSharp.Linq.Mutations
             var keyValues = entity.Clone(keyOnly: true);
 
             //create a new tracked object
-            var entry = new TrackedObject<TEntity>(_table, keyValues, default(TEntity), ObjectState.Deleted);
+            var entry = new TrackedEntity<TEntity>(_table, keyValues, default(TEntity), EntityState.Deleted);
 
             //set the object to deleted
-            _trackedObjects[ObjectKey.Create(keyValues)] = entry;
+            _trackedObjects[EntityKey.Create(keyValues)] = entry;
         }
 
         /// <summary>
@@ -93,41 +93,41 @@ namespace CqlSharp.Linq.Mutations
         /// <returns></returns>
         internal TEntity GetOrAdd(TEntity entity)
         {
-            var key = ObjectKey.Create(entity);
+            var key = EntityKey.Create(entity);
             var trackedObject = _trackedObjects.GetOrAdd(key,
                                      _ =>
-                                     new TrackedObject<TEntity>(_table, entity, entity.Clone(), ObjectState.Unchanged));
+                                     new TrackedEntity<TEntity>(_table, entity, entity.Clone(), EntityState.Unchanged));
             return trackedObject.Object;
         }
 
 
         /// <summary>
-        /// Gets or adds the row as described by the trackedObject. If an trackedobject with an identical key
+        /// Gets or adds the row as described by the TrackedEntity. If an trackedobject with an identical key
         /// already is tracked, this already tracked object is returned
         /// </summary>
-        /// <param name="trackedObject">The tracked object.</param>
+        /// <param name="trackedEntity">The tracked object.</param>
         /// <returns></returns>
-        internal TrackedObject<TEntity> GetOrAdd(TrackedObject<TEntity> trackedObject)
+        internal TrackedEntity<TEntity> GetOrAdd(TrackedEntity<TEntity> trackedEntity)
         {
-            return _trackedObjects.GetOrAdd(ObjectKey.Create(trackedObject.Object), trackedObject);
+            return _trackedObjects.GetOrAdd(EntityKey.Create(trackedEntity.Object), trackedEntity);
         }
 
         /// <summary>
         /// Tries to get a tracked object for a specific key
         /// </summary>
         /// <param name="key">The key.</param>
-        /// <param name="trackedObject">The tracked object.</param>
+        /// <param name="trackedEntity">The tracked object.</param>
         /// <returns></returns>
-        internal bool TryGetTrackedObject(ObjectKey key, out TrackedObject<TEntity> trackedObject)
+        internal bool TryGetTrackedObject(EntityKey key, out TrackedEntity<TEntity> trackedEntity)
         {
-            return _trackedObjects.TryGetValue(key, out trackedObject);
+            return _trackedObjects.TryGetValue(key, out trackedEntity);
         }
 
         /// <summary>
         /// Gets the tracked table entries.
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<TrackedObject> Entries()
+        public IEnumerable<TrackedEntity> Entries()
         {
             return _trackedObjects.Values;
         }

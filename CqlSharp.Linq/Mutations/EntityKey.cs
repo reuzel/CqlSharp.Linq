@@ -23,7 +23,7 @@ namespace CqlSharp.Linq.Mutations
     /// <summary>
     ///   Defines a key from a table entry
     /// </summary>
-    internal struct ObjectKey
+    internal struct EntityKey
     {
         /// <summary>
         ///   The comparer that can compare Cql objects based on their key values
@@ -33,32 +33,32 @@ namespace CqlSharp.Linq.Mutations
         /// <summary>
         ///   The object from which the key is derived
         /// </summary>
-        private readonly Object _object;
+        private readonly Object _entity;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="ObjectKey" /> struct.
+        ///   Initializes a new instance of the <see cref="EntityKey" /> struct.
         /// </summary>
-        /// <param name="obj"> The object. </param>
+        /// <param name="entity"> The entity containing the key values. </param>
         /// <param name="keyComparer"> </param>
-        private ObjectKey(object obj, IEqualityComparer keyComparer)
+        private EntityKey(object entity, IEqualityComparer keyComparer)
         {
-            _object = obj;
+            _entity = entity;
             _keyComparer = keyComparer;
         }
 
         /// <summary>
-        ///   Creates an ObjectKey from the specified entity.
+        ///   Creates an EntityKey from the specified entity.
         /// </summary>
         /// <typeparam name="TEntity"> The type of the entity. </typeparam>
         /// <param name="entity"> The entity. </param>
         /// <returns> </returns>
-        public static ObjectKey Create<TEntity>(TEntity entity)
+        public static EntityKey Create<TEntity>(TEntity entity)
         {
-            return new ObjectKey(entity, CqlObjectComparer<TEntity>.Instance);
+            return new EntityKey(entity, CqlEntityComparer<TEntity>.Instance);
         }
 
         /// <summary>
-        ///   Creates an ObjectKey from the specified key values.
+        ///   Creates an EntityKey from the specified key values.
         /// </summary>
         /// <typeparam name="TEntity"> The type of the entity. </typeparam>
         /// <param name="keyValues"> The key values. </param>
@@ -66,7 +66,7 @@ namespace CqlSharp.Linq.Mutations
         /// <exception cref="System.ArgumentException">Not all required key values are provided
         ///   or
         ///   the types of the keyValues do not match the required types for the entity keys</exception>
-        public static ObjectKey Create<TEntity>(params object[] keyValues)
+        public static EntityKey Create<TEntity>(params object[] keyValues)
         {
             var accessor = ObjectAccessor<TEntity>.Instance;
             var keyObject = Activator.CreateInstance<TEntity>();
@@ -95,7 +95,7 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> </returns>
         public Object GetKeyValues()
         {
-            return _object;
+            return _entity;
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> </returns>
         public TEntity GetKeyValues<TEntity>()
         {
-            return (TEntity) _object;
+            return (TEntity) _entity;
         }
 
         /// <summary>
@@ -116,28 +116,28 @@ namespace CqlSharp.Linq.Mutations
         public override bool Equals(object obj)
         {
             if (obj == null) return false;
-            if (!(obj is ObjectKey)) return false;
-            return Equals((ObjectKey) obj);
+            if (!(obj is EntityKey)) return false;
+            return Equals((EntityKey) obj);
         }
 
         /// <summary>
-        ///   Determines whether the specified <see cref="ObjectKey" />, is equal to this instance.
+        ///   Determines whether the specified <see cref="EntityKey" />, is equal to this instance.
         /// </summary>
-        /// <param name="obj"> The <see cref="ObjectKey" /> to compare with this instance. </param>
-        /// <returns> <c>true</c> if the specified <see cref="ObjectKey" /> is equal to this instance; otherwise, <c>false</c> . </returns>
-        public bool Equals(ObjectKey obj)
+        /// <param name="obj"> The <see cref="EntityKey" /> to compare with this instance. </param>
+        /// <returns> <c>true</c> if the specified <see cref="EntityKey" /> is equal to this instance; otherwise, <c>false</c> . </returns>
+        public bool Equals(EntityKey obj)
         {
             //true if both are default object keys
-            if (_object == null && obj._object == null) return true;
+            if (_entity == null && obj._entity == null) return true;
 
             //false if only one is object key
-            if (_object == null || obj._object == null) return false;
+            if (_entity == null || obj._entity == null) return false;
 
             //false if the key objects do not match type
-            if (obj._object.GetType() != _object.GetType()) return false;
+            if (obj._entity.GetType() != _entity.GetType()) return false;
 
             //check data with the comparer
-            return _keyComparer.Equals(_object, obj._object);
+            return _keyComparer.Equals(_entity, obj._entity);
         }
 
         /// <summary>
@@ -146,15 +146,15 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. </returns>
         public override int GetHashCode()
         {
-            return _keyComparer.GetHashCode(_object);
+            return _keyComparer.GetHashCode(_entity);
         }
 
-        public static bool operator ==(ObjectKey first, ObjectKey second)
+        public static bool operator ==(EntityKey first, EntityKey second)
         {
             return first.Equals(second);
         }
 
-        public static bool operator !=(ObjectKey first, ObjectKey second)
+        public static bool operator !=(EntityKey first, EntityKey second)
         {
             return !(first == second);
         }

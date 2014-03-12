@@ -25,25 +25,25 @@ namespace CqlSharp.Linq.Mutations
     /// <summary>
     ///   Tracks changes to a single object
     /// </summary>
-    public abstract class TrackedObject
+    public abstract class TrackedEntity
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="TrackedObject{TEntity}" /> class.
+        ///   Initializes a new instance of the <see cref="TrackedEntity{TEntity}" /> class.
         /// </summary>
         /// <param name="table"> </param>
         /// <param name="entity"> The entity. </param>
         /// <param name="original"> </param>
-        /// <param name="objectState"> The State. </param>
-        protected TrackedObject(ICqlTable table, Object entity, Object original, ObjectState objectState)
+        /// <param name="entityState"> The State. </param>
+        protected TrackedEntity(ICqlTable table, Object entity, Object original, EntityState entityState)
         {
             if (table == null) throw new ArgumentNullException("table");
             if (entity == null) throw new ArgumentNullException("entity");
 
-            if (objectState == ObjectState.Modified)
+            if (entityState == EntityState.Modified)
                 throw new ArgumentException(
-                    "Can't start tracked a object in Modified, as it is not known what was changed", "objectState");
+                    "Can't start tracked a object in Modified, as it is not known what was changed", "entityState");
 
-            State = objectState;
+            State = entityState;
             Table = table;
             Object = entity;
             Original = original;
@@ -54,7 +54,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Gets or sets the state.
         /// </summary>
         /// <value> The state. </value>
-        public ObjectState State { get; protected set; }
+        public EntityState State { get; protected set; }
 
         /// <summary>
         ///   the columns that were changed
@@ -116,17 +116,17 @@ namespace CqlSharp.Linq.Mutations
     ///   Tracks the changes to a single object of a specific type
     /// </summary>
     /// <typeparam name="TEntity"> The type of the entity. </typeparam>
-    public class TrackedObject<TEntity> : TrackedObject where TEntity : class, new()
+    public class TrackedEntity<TEntity> : TrackedEntity where TEntity : class, new()
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="TrackedObject{TEntity}" /> class.
+        ///   Initializes a new instance of the <see cref="TrackedEntity{TEntity}" /> class.
         /// </summary>
         /// <param name="table"> The table. </param>
         /// <param name="entity"> The entity. </param>
         /// <param name="original"> The original. </param>
-        /// <param name="objectState"> State of the object. </param>
-        public TrackedObject(ICqlTable table, TEntity entity, TEntity original, ObjectState objectState)
-            : base(table, entity, original, objectState)
+        /// <param name="entityState"> State of the object. </param>
+        public TrackedEntity(ICqlTable table, TEntity entity, TEntity original, EntityState entityState)
+            : base(table, entity, original, entityState)
         {
         }
 
@@ -198,19 +198,19 @@ namespace CqlSharp.Linq.Mutations
         /// <exception cref="CqlLinqException">Illegal change detected: A tracked object has changed its key</exception>
         internal override bool DetectChanges()
         {
-            if (State == ObjectState.Detached)
+            if (State == EntityState.Detached)
                 return false;
 
-            if (State == ObjectState.Deleted)
+            if (State == EntityState.Deleted)
                 return true;
 
             //make sure the entity did not switch key
-            var originalKey = ObjectKey.Create(Original);
-            var entityKey = ObjectKey.Create(Object);
+            var originalKey = EntityKey.Create(Original);
+            var entityKey = EntityKey.Create(Object);
             if (!originalKey.Equals(entityKey))
                 throw new CqlLinqException("Illegal change detected: A tracked object has changed its key");
 
-            if (State == ObjectState.Added)
+            if (State == EntityState.Added)
                 return true;
 
             //find which columns have changed
@@ -240,11 +240,11 @@ namespace CqlSharp.Linq.Mutations
             //update state
             if (changedColumns.Count > 0)
             {
-                State = ObjectState.Modified;
+                State = EntityState.Modified;
                 return true;
             }
 
-            State = ObjectState.Unchanged;
+            State = EntityState.Unchanged;
             return false;
         }
 
@@ -260,7 +260,7 @@ namespace CqlSharp.Linq.Mutations
         public override void SetOriginalValues(object newOriginal)
         {
             var newOriginalEntity = (TEntity)newOriginal;
-            if (ObjectKey.Create(newOriginalEntity) != ObjectKey.Create(Object))
+            if (EntityKey.Create(newOriginalEntity) != EntityKey.Create(Object))
                 throw new ArgumentException(
                     "The new original values represent an different entity than the one tracked. The key values do not match",
                     "newOriginal");
@@ -275,7 +275,7 @@ namespace CqlSharp.Linq.Mutations
         public override void SetObjectValues(object newValues)
         {
             var newValuesEntity = (TEntity)newValues;
-            if (ObjectKey.Create(newValuesEntity) != ObjectKey.Create(Original))
+            if (EntityKey.Create(newValuesEntity) != EntityKey.Create(Original))
                 throw new ArgumentException(
                     "The new object values represent an different entity than the one tracked. The key values do not match",
                     "newValues");
@@ -304,11 +304,11 @@ namespace CqlSharp.Linq.Mutations
                         var row = reader.Current;
                         SetOriginalValues(row);
                         SetObjectValues(row);
-                        State = ObjectState.Unchanged;
+                        State = EntityState.Unchanged;
                     }
                     else
                     {
-                        State = ObjectState.Detached;
+                        State = EntityState.Detached;
                     }
                 }
             }

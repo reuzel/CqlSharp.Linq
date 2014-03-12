@@ -18,7 +18,7 @@ namespace CqlSharp.Linq.Mutations
     /// <summary>
     ///   State of a tracked object
     /// </summary>
-    public enum ObjectState
+    public enum EntityState
     {
         Unchanged,
         Added,

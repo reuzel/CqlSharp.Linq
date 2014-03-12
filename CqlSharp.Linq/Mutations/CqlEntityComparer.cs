@@ -21,12 +21,12 @@ using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {
-    public class CqlObjectComparer<TObject> : IEqualityComparer<TObject>, IEqualityComparer
+    public class CqlEntityComparer<TEntity> : IEqualityComparer<TEntity>, IEqualityComparer
     {
         /// <summary>
         ///   The singleton instance
         /// </summary>
-        public static readonly CqlObjectComparer<TObject> Instance = new CqlObjectComparer<TObject>();
+        public static readonly CqlEntityComparer<TEntity> Instance = new CqlEntityComparer<TEntity>();
 
         #region IEqualityComparer Members
 
@@ -43,7 +43,7 @@ namespace CqlSharp.Linq.Mutations
         ///   are of different types and neither one can handle comparisons with the other.</exception>
         public new bool Equals(object x, object y)
         {
-            return Equals((TObject) x, (TObject) y);
+            return Equals((TEntity) x, (TEntity) y);
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace CqlSharp.Linq.Mutations
         ///   is null.</exception>
         public int GetHashCode(object obj)
         {
-            return GetHashCode((TObject) obj);
+            return GetHashCode((TEntity) obj);
         }
 
         #endregion
@@ -71,9 +71,9 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> true if the specified objects are equal; otherwise, false. </returns>
         /// <param name="x"> The first object of type <paramref name="T" /> to compare. </param>
         /// <param name="y"> The second object of type <paramref name="T" /> to compare. </param>
-        public bool Equals(TObject x, TObject y)
+        public bool Equals(TEntity x, TEntity y)
         {
-            var accessor = ObjectAccessor<TObject>.Instance;
+            var accessor = ObjectAccessor<TEntity>.Instance;
             foreach (var column in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
             {
                 if (column.ReadFunction != null)
@@ -106,14 +106,14 @@ namespace CqlSharp.Linq.Mutations
         ///   is a reference type and
         ///   <paramref name="obj" />
         ///   is null.</exception>
-        public int GetHashCode(TObject obj)
+        public int GetHashCode(TEntity obj)
         {
             if (obj == null)
                 throw new ArgumentNullException("obj");
 
             int hashCode = 1;
 
-            var accessor = ObjectAccessor<TObject>.Instance;
+            var accessor = ObjectAccessor<TEntity>.Instance;
             foreach (var column in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
             {
                 var value = column.ReadFunction(obj);

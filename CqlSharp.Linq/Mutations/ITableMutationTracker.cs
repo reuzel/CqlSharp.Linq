@@ -11,6 +11,6 @@ namespace CqlSharp.Linq.Mutations
         /// Gets the tracked table entries.
         /// </summary>
         /// <returns></returns>
-        IEnumerable<TrackedObject> Entries();
+        IEnumerable<TrackedEntity> Entries();
     }
 }
