@@ -14,11 +14,13 @@ namespace CqlSharp.Linq.Query
         /// </summary>
         /// <param name="cql">The CQL query</param>
         /// <param name="projector">The projector of the results</param>
+        /// <param name="canTrackChanges"> </param>
         /// <param name="resultFunction">The result function.</param>
-        public QueryPlan(string cql, Delegate projector, ResultFunction resultFunction)
+        public QueryPlan(string cql, Delegate projector, bool canTrackChanges, ResultFunction resultFunction)
         {
             Cql = cql;
             Projector = projector;
+            CanTrackChanges = canTrackChanges;
             ResultFunction = resultFunction;
         }
 
@@ -37,7 +39,15 @@ namespace CqlSharp.Linq.Query
         /// The projector.
         /// </value>
         public Delegate Projector { get; private set; }
-        
+
+        /// <summary>
+        /// Gets a value indicating whether the results of the query can be tracked for changes by the used context
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [can track changes]; otherwise, <c>false</c>.
+        /// </value>
+        public bool CanTrackChanges { get; private set; }
+
         /// <summary>
         /// Gets the result function that, if set, aggregates the results into the required form
         /// </summary>
@@ -73,16 +83,28 @@ namespace CqlSharp.Linq.Query
             }
 #endif
 
-            var enm = (IProjectionReader)Activator.CreateInstance(
-                typeof(ProjectionReader<>).MakeGenericType(projectionType),
-                BindingFlags.Instance | BindingFlags.Public, null,
-                new object[] { context, Cql, Projector },
-                null);
+            IProjectionReader reader;
+            if (CanTrackChanges)
+            {
+               reader = (IProjectionReader) Activator.CreateInstance(
+                   typeof(TrackingReader<>).MakeGenericType(projectionType),
+                   BindingFlags.Instance | BindingFlags.Public, null,
+                   new object[] { context, Cql, Projector },
+                   null);
+            }
+            else
+            {
+                reader = (IProjectionReader) Activator.CreateInstance(
+                    typeof (ProjectionReader<>).MakeGenericType(projectionType),
+                    BindingFlags.Instance | BindingFlags.Public, null,
+                    new object[] {context, Cql, Projector},
+                    null);
+            }
 
             if (ResultFunction != null)
-                return ResultFunction.Invoke(enm.AsObjectEnumerable());
+                return ResultFunction.Invoke(reader.AsObjectEnumerable());
 
-            return enm;
+            return reader;
         }
     }
 }

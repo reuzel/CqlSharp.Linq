@@ -131,5 +131,40 @@ namespace CqlSharp.Linq.Test
                 }
             }
         }
+
+        [TestMethod]
+        public void FindAndUpdate()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(100);
+                value.Value = "Hallo daar!";
+                context.SaveChanges();
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(100);
+                Assert.AreEqual("Hallo daar!", value.Value);
+            }
+
+        }
+
+        [TestMethod]
+        public void SelectAndUpdate()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var query = context.Values.Where(r => new[] { 201, 202, 203, 204 }.Contains(r.Id)).ToList();
+                query[1].Value = "Zo gaan we weer verder";
+                context.SaveChanges();
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(202);
+                Assert.AreEqual("Zo gaan we weer verder", value.Value);
+            }
+        }
     }
 }

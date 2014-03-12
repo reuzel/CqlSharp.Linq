@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Linq;
 using System.Text;
-using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {
-    internal static class CqlDmlBuilder<TEntity>
+    internal static class CqlDmlBuilder<TEntity> where TEntity: class, new()
     {
         private static readonly ObjectAccessor<TEntity> Accessor = ObjectAccessor<TEntity>.Instance;
 

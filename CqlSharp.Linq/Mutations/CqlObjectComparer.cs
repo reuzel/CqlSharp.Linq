@@ -86,7 +86,7 @@ namespace CqlSharp.Linq.Mutations
                         if (!TypeSystem.SequenceEqual((IEnumerable) valX, (IEnumerable) valY))
                             return false;
                     }
-                    else if (!Equals(valX, valY))
+                    else if (!Object.Equals(valX, valY))
                     {
                         return false;
                     }

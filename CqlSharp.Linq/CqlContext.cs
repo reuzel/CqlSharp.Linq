@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Mutations;
+using CqlSharp.Linq.Query;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Linq.Mutations;
-using CqlSharp.Linq.Query;
 
 namespace CqlSharp.Linq
 {
@@ -121,13 +121,13 @@ namespace CqlSharp.Linq
             foreach (var property in properties)
             {
                 var propertyType = property.PropertyType;
-                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof (CqlTable<>))
+                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(CqlTable<>))
                 {
                     //create new table object
                     var table =
                         (ICqlTable)
                         Activator.CreateInstance(propertyType, BindingFlags.NonPublic | BindingFlags.Instance, null,
-                                                 new object[] {this}, null);
+                                                 new object[] { this }, null);
 
                     //add it to the list of known tables
                     table = _tables.GetOrAdd(table.Type, table);
@@ -145,7 +145,18 @@ namespace CqlSharp.Linq
         /// <returns> a CqlTable </returns>
         public CqlTable<T> GetTable<T>() where T : class, new()
         {
-            return (CqlTable<T>) _tables.GetOrAdd(typeof (T), new CqlTable<T>(this));
+            return (CqlTable<T>)_tables.GetOrAdd(typeof(T), new CqlTable<T>(this));
+        }
+
+        /// <summary>
+        /// Tries the get table for the given type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <param name="table">The table.</param>
+        /// <returns></returns>
+        internal bool TryGetTable(Type type, out ICqlTable table)
+        {
+            return _tables.TryGetValue(type, out table);
         }
 
         /// <summary>
@@ -170,7 +181,10 @@ namespace CqlSharp.Linq
                     {
                         if (trackedObject.State != ObjectState.Unchanged)
                         {
-                            var command = new CqlCommand(connection, trackedObject.GetDmlStatement(), consistency);
+                            var cql = trackedObject.GetDmlStatement();
+                            if(Log!=null)Log(cql);
+
+                            var command = new CqlCommand(connection, cql, consistency);
                             command.PartitionKey.Set(trackedObject.Object);
                             command.ExecuteNonQueryAsync();
                             trackedObject.SetOriginalValues(trackedObject.Object);
@@ -200,7 +214,10 @@ namespace CqlSharp.Linq
                     {
                         if (trackedObject.State != ObjectState.Unchanged)
                         {
-                            var command = new CqlCommand(connection, trackedObject.GetDmlStatement(), consistency);
+                            var cql = trackedObject.GetDmlStatement();
+                            if(Log!=null) Log(cql);
+
+                            var command = new CqlCommand(connection, cql, consistency);
                             command.PartitionKey.Set(trackedObject.Object);
                             await command.ExecuteNonQueryAsync(cancellationToken);
                             trackedObject.SetOriginalValues(trackedObject.Object);

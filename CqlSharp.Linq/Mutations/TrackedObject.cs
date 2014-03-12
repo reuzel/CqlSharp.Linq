@@ -116,7 +116,7 @@ namespace CqlSharp.Linq.Mutations
     ///   Tracks the changes to a single object of a specific type
     /// </summary>
     /// <typeparam name="TEntity"> The type of the entity. </typeparam>
-    public class TrackedObject<TEntity> : TrackedObject
+    public class TrackedObject<TEntity> : TrackedObject where TEntity : class, new()
     {
         /// <summary>
         ///   Initializes a new instance of the <see cref="TrackedObject{TEntity}" /> class.
@@ -130,6 +130,48 @@ namespace CqlSharp.Linq.Mutations
         {
         }
 
+        /// <summary>
+        /// Gets the reload CQL statement.
+        /// </summary>
+        /// <returns></returns>
+        private string GetReloadCql()
+        {
+            var accessor = ObjectAccessor<TEntity>.Instance;
+
+            var sb = new StringBuilder();
+            sb.Append("SELECT ");
+
+            bool firstColumn = true;
+            foreach (var column in accessor.Columns)
+            {
+                if (!firstColumn)
+                {
+                    sb.Append(",");
+                }
+                sb.Append(" \"");
+                sb.Append(column.Name);
+                sb.Append("\"");
+                firstColumn = false;
+            }
+            sb.Append(" FROM \"");
+            sb.Append(Table.Name);
+            sb.Append("\" WHERE");
+
+            firstColumn = true;
+            foreach (var keyColumn in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
+            {
+                if (!firstColumn)
+                    sb.Append(" AND ");
+                sb.Append(" \"");
+                sb.Append(keyColumn.Name);
+                sb.Append("\"=");
+                var value = keyColumn.ReadFunction(Object);
+                sb.Append(TypeSystem.ToStringValue(value, keyColumn.CqlType));
+                firstColumn = false;
+            }
+
+            return sb.ToString();
+        }
         /// <summary>
         ///   Gets the object being tracked
         /// </summary>
@@ -218,7 +260,7 @@ namespace CqlSharp.Linq.Mutations
         public override void SetOriginalValues(object newOriginal)
         {
             var newOriginalEntity = (TEntity)newOriginal;
-            if (ObjectKey.Create(newOriginalEntity) != ObjectKey.Create(Original))
+            if (ObjectKey.Create(newOriginalEntity) != ObjectKey.Create(Object))
                 throw new ArgumentException(
                     "The new original values represent an different entity than the one tracked. The key values do not match",
                     "newOriginal");
@@ -246,32 +288,22 @@ namespace CqlSharp.Linq.Mutations
         /// </summary>
         public override void Reload()
         {
-            var accessor = ObjectAccessor<TEntity>.Instance;
-
-            var sb = new StringBuilder();
-            sb.Append("SELECT * FROM \"");
-            sb.Append(Table.Name);
-            sb.Append("\" WHERE");
-
-            foreach (var keyColumn in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
-            {
-                sb.Append(" \"");
-                sb.Append(keyColumn.Name);
-                sb.Append("\"=");
-                var value = keyColumn.ReadFunction(Original);
-                sb.Append(TypeSystem.ToStringValue(value, keyColumn.CqlType));
-            }
-
             using (var connection = new CqlConnection(Table.Context.ConnectionString))
             {
                 connection.Open();
-                var command = new CqlCommand(connection, sb.ToString());
+
+                var cql = GetReloadCql();
+                if(Table.Context.Log!=null)Table.Context.Log(cql);
+
+                var command = new CqlCommand(connection, cql);
+
                 using (var reader = command.ExecuteReader<TEntity>())
                 {
                     if (reader.Read())
                     {
-                        SetOriginalValues(reader.Current);
-                        SetObjectValues(reader.Current);
+                        var row = reader.Current;
+                        SetOriginalValues(row);
+                        SetObjectValues(row);
                         State = ObjectState.Unchanged;
                     }
                     else

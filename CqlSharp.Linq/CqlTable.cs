@@ -19,7 +19,6 @@ using CqlSharp.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 
 namespace CqlSharp.Linq
 {
@@ -27,20 +26,12 @@ namespace CqlSharp.Linq
     ///   A table in a Cassandra Keyspace (database)
     /// </summary>
     /// <typeparam name="T"> </typeparam>
-    public class CqlTable<T> : CqlQuery<T>, ICqlTable  where T: class, new()
+    public class CqlTable<T> : CqlQuery<T>, ICqlTable where T : class, new()
     {
         private readonly CqlContext _context;
 
-        internal CqlTable(CqlContext context) : base (context.CqlQueryProvider)
-        {
-            if (context == null)
-                throw new ArgumentNullException("context");
-
-            _context = context;
-            
-        }
-
-        internal CqlTable(CqlContext context, Expression expression) : base(context.CqlQueryProvider, expression)
+        internal CqlTable(CqlContext context)
+            : base(context.CqlQueryProvider)
         {
             if (context == null)
                 throw new ArgumentNullException("context");
@@ -69,49 +60,58 @@ namespace CqlSharp.Linq
         /// </value>
         public IEnumerable<T> Local
         {
-            get { return _context.MutationTracker.Entries<T>().Select(to => to.Object); }
+            get { return _context.MutationTracker.GetTracker(this).Entries().Select(to => (T)to.Object); }
         }
 
         public bool Attach(T entity)
         {
-            return _context.MutationTracker.Attach(this, entity);
+            return _context.MutationTracker.GetTracker(this).Attach(entity);
         }
 
         public bool Detach(T entity)
         {
-            return _context.MutationTracker.Detach(entity);
+            return _context.MutationTracker.GetTracker(this).Detach(entity);
         }
 
         public void Delete(T entity)
         {
-            _context.MutationTracker.Delete(this, entity);
+            _context.MutationTracker.GetTracker(this).Delete(entity);
         }
 
         public void Add(T entity)
         {
-            _context.MutationTracker.AddObject(this, entity);
+            _context.MutationTracker.GetTracker(this).AddObject(entity);
         }
 
         public void AddRange(IEnumerable<T> entities)
         {
+            TableMutationTracker<T> mutationTracker = _context.MutationTracker.GetTracker(this);
             foreach (var entity in entities)
-                _context.MutationTracker.AddObject(this, entity);
+                mutationTracker.AddObject(entity);
         }
 
         public T Find(params object[] keyValues)
         {
             var key = ObjectKey.Create<T>(keyValues);
 
-            TrackedObject trackedObject;
-            if (_context.MutationTracker.TryGetTrackedObject(key, out trackedObject))
+            var tracker = _context.MutationTracker.GetTracker(this);
+
+            TrackedObject<T> trackedObject;
+            if (!tracker.TryGetTrackedObject(key, out trackedObject))
             {
+                //object not found, create a tracked object
                 trackedObject = new TrackedObject<T>(this, key.GetKeyValues<T>(), default(T), ObjectState.Detached);
+
+                //load any existing values from the database
                 trackedObject.Reload();
-                _context.MutationTracker.AddEntry((TrackedObject<T>)trackedObject);
+
+                //add the object, or return existing one if we were raced
+                trackedObject = tracker.GetOrAdd(trackedObject);
             }
 
+            //check state
             if (trackedObject.State != ObjectState.Detached)
-                return (T)trackedObject.Object;
+                return trackedObject.Object;
 
             return default(T);
         }

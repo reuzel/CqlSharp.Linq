@@ -71,7 +71,7 @@ namespace CqlSharp.Linq.Query
 
             var projection = Expression.MemberInit(Expression.New(table.Type), bindings);
 
-            return new ProjectionExpression(selectStmt, projection, null);
+            return new ProjectionExpression(selectStmt, projection, true, null);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression call)
@@ -92,7 +92,7 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.Limit,
                                                                        true);
 
-                            return new ProjectionExpression(select, source.Projection, source.ResultFunction);
+                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, source.ResultFunction);
                         }
                 }
             }
@@ -138,7 +138,7 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //update projection
-                            return new ProjectionExpression(select, source.Projection, source.ResultFunction);
+                            return new ProjectionExpression(select, source.Projection, false, source.ResultFunction);
                         }
 
                     case "Take":
@@ -160,7 +160,7 @@ namespace CqlSharp.Linq.Query
                                                                        take,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, source.Projection, source.ResultFunction);
+                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, source.ResultFunction);
                         }
 
                     case "First":
@@ -192,7 +192,7 @@ namespace CqlSharp.Linq.Query
                                                            ? Enumerable.First
                                                            : (ResultFunction)Enumerable.FirstOrDefault;
 
-                            return new ProjectionExpression(select, source.Projection, processor);
+                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, processor);
                         }
 
                     case "Single":
@@ -228,7 +228,7 @@ namespace CqlSharp.Linq.Query
                                                            : (ResultFunction)Enumerable.SingleOrDefault;
 
 
-                            return new ProjectionExpression(select, source.Projection, processor);
+                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, processor);
                         }
 
                     case "Any":
@@ -254,7 +254,7 @@ namespace CqlSharp.Linq.Query
                                                                        1,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, source.Projection, enm => enm.Any());
+                            return new ProjectionExpression(select, source.Projection, false, enm => enm.Any());
                         }
 
                     case "Count":
@@ -285,7 +285,7 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.Limit,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, new SelectorExpression("count", typeof(long)), Enumerable.Single);
+                            return new ProjectionExpression(select, new SelectorExpression("count", typeof(long)), false, Enumerable.Single);
                         }
 
                     case "OrderBy":

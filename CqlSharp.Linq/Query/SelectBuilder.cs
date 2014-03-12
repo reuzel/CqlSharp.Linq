@@ -28,6 +28,10 @@ namespace CqlSharp.Linq.Query
             //get the lambda expression of the select method
             var lambda = (LambdaExpression)selectExpression.StripQuotes();
 
+            //if the lambda, is the identity lamda, simply return
+            if (lambda.IsIdentityLambda())
+                return projection;
+
             //map the arguments of the lambda expression to the existing projection
             MapLambdaParameters(lambda, projection.Projection);
 
@@ -51,7 +55,7 @@ namespace CqlSharp.Linq.Query
                                                           select.Limit,
                                                           select.AllowFiltering);
 
-            return new ProjectionExpression(newSelect, newProjection, projection.ResultFunction);
+            return new ProjectionExpression(newSelect, newProjection, false, projection.ResultFunction);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)

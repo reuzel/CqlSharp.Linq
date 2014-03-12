@@ -64,7 +64,7 @@ namespace CqlSharp.Linq.Query
                                  : "<none>"));
 
             //return translation results
-            return new QueryPlan(cql, projector.Compile(), translation.ResultFunction);
+            return new QueryPlan(cql, projector.Compile(),translation.CanTrackChanges, translation.ResultFunction);
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)

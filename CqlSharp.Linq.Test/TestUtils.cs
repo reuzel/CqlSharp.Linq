@@ -62,6 +62,7 @@ namespace CqlSharp.Linq.Test
     /// </summary>
     public class MyValue
     {
+        [CqlKey]
         public int Id { get; set; }
         public string Value { get; set; }
     }

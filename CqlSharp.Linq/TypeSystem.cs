@@ -135,7 +135,7 @@ namespace CqlSharp.Linq
         /// <returns></returns>
         internal static TEntity Clone<TEntity>(this TEntity entity, bool keyOnly = false)
         {
-            var clone = (TEntity)Activator.CreateInstance(typeof(TEntity), BindingFlags.Instance | BindingFlags.Public);
+            var clone = Activator.CreateInstance<TEntity>();
             entity.CopyTo(clone, keyOnly);
             return clone;
         }

@@ -30,7 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CqlSharp">
+    <Reference Include="CqlSharp, Version=0.33.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\CqlSharp.0.33.0.0\lib\net45\CqlSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
@@ -62,7 +63,9 @@
     <Compile Include="ICqlTable.cs" />
     <Compile Include="Mutations\CqlDmlBuilder.cs" />
     <Compile Include="Mutations\CqlObjectComparer.cs" />
+    <Compile Include="Mutations\ITableMutationTracker.cs" />
     <Compile Include="Mutations\ObjectKey.cs" />
+    <Compile Include="Mutations\TableMutationTracker.cs" />
     <Compile Include="Mutations\TrackedObject.cs" />
     <Compile Include="Mutations\ObjectState.cs" />
     <Compile Include="Mutations\MutationTracker.cs" />
@@ -81,6 +84,7 @@
     <Compile Include="Query\ProjectorBuilder.cs" />
     <Compile Include="Query\QueryPlan.cs" />
     <Compile Include="Query\SelectBuilder.cs" />
+    <Compile Include="Query\TrackingReader.cs" />
     <Compile Include="Query\WhereBuilder.cs" />
     <Compile Include="TypeSystem.cs" />
   </ItemGroup>

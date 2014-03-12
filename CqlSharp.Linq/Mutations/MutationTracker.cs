@@ -20,127 +20,59 @@ using System.Linq;
 namespace CqlSharp.Linq.Mutations
 {
     /// <summary>
-    ///   Tracks the mutation of a specific table
+    ///   Tracks the mutation accross all tables
     /// </summary>
     public class MutationTracker
     {
         /// <summary>
-        ///   The tracked objects
+        /// The table mutation trackers
         /// </summary>
-        private readonly ConcurrentDictionary<ObjectKey, TrackedObject> _trackedObjects;
+        private readonly ConcurrentDictionary<ICqlTable, ITableMutationTracker> _tableTrackers;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="MutationTracker" /> class.
+        /// Initializes a new instance of the <see cref="MutationTracker"/> class.
         /// </summary>
         internal MutationTracker()
         {
-            _trackedObjects = new ConcurrentDictionary<ObjectKey, TrackedObject>();
+            _tableTrackers = new ConcurrentDictionary<ICqlTable, ITableMutationTracker>();
         }
 
-
         /// <summary>
-        ///   Adds a new tracked entry to the mutation tracking list
+        /// Gets the tracker for the given table.
         /// </summary>
-        /// <typeparam name="TEntity"> The type of the entity. </typeparam>
-        /// <param name="trackedObject"> The tracked object. </param>
-        /// <returns> </returns>
-        internal bool AddEntry<TEntity>(TrackedObject<TEntity> trackedObject) where TEntity : class, new()
+        /// <typeparam name="TEntity">The type of the entity.</typeparam>
+        /// <param name="table">The table.</param>
+        /// <returns></returns>
+        internal TableMutationTracker<TEntity> GetTracker<TEntity>(CqlTable<TEntity> table) where TEntity : class, new()
         {
-            var key = ObjectKey.Create(trackedObject.Original);
-            return _trackedObjects.TryAdd(key, trackedObject);
+            return (TableMutationTracker<TEntity>)_tableTrackers.GetOrAdd(table, (t) => new TableMutationTracker<TEntity>((CqlTable<TEntity>)t));
         }
 
         /// <summary>
-        ///   Adds the object.
+        /// Returns the tracked entries
         /// </summary>
-        /// <param name="table"> table to which entity belongs </param>
-        /// <param name="entity"> The entity. </param>
-        /// <returns> </returns>
-        internal bool AddObject<TEntity>(CqlTable<TEntity> table, TEntity entity) where TEntity : class, new()
-        {
-            //clone the key values of the entity
-            var keyValues = entity.Clone(keyOnly: true);
-
-            //create a new tracked object
-            var entry = new TrackedObject<TEntity>(table, entity, keyValues, ObjectState.Added);
-
-            //try to add the object
-            return _trackedObjects.TryAdd(ObjectKey.Create(keyValues), entry);
-        }
-
-        /// <summary>
-        ///   Attaches the specified entity.
-        /// </summary>
-        /// <param name="table"> table to which entity belongs </param>
-        /// <param name="entity"> The entity. </param>
-        /// <returns> </returns>
-        internal bool Attach<TEntity>(CqlTable<TEntity> table, TEntity entity) where TEntity : class, new()
-        {
-            //clone the entity, such that changes can be detected (and keys keep unchanged)
-            var baseValues = entity.Clone();
-
-            //create a new tracked object
-            var entry = new TrackedObject<TEntity>(table, entity, baseValues, ObjectState.Unchanged);
-
-            //try to add the object
-            return _trackedObjects.TryAdd(ObjectKey.Create(baseValues), entry);
-        }
-
-        /// <summary>
-        ///   Detaches the specified entity.
-        /// </summary>
-        /// <param name="entity"> The entity. </param>
-        /// <returns> </returns>
-        internal bool Detach<TEntity>(TEntity entity) where TEntity : class, new()
-        {
-            TrackedObject entry;
-            return _trackedObjects.TryRemove(ObjectKey.Create(entity), out entry);
-        }
-
-        /// <summary>
-        ///   Deletes the specified entity.
-        /// </summary>
-        /// <param name="table"> the table to which the entity belongs </param>
-        /// <param name="entity"> The entity. </param>
-        internal void Delete<TEntity>(CqlTable<TEntity> table, TEntity entity) where TEntity : class, new()
-        {
-            //clone the key values of the entity
-            var keyValues = entity.Clone(keyOnly: true);
-
-            //create a new tracked object
-            var entry = new TrackedObject<TEntity>(table, keyValues, default(TEntity), ObjectState.Deleted);
-
-            //set the object to deleted
-            _trackedObjects[ObjectKey.Create(keyValues)] = entry;
-        }
-
-        /// <summary>
-        ///   Gets the changed objects.
-        /// </summary>
-        /// <returns> </returns>
+        /// <returns></returns>
         public IEnumerable<TrackedObject> Entries()
         {
-            return _trackedObjects.Values;
+            return _tableTrackers.Values.SelectMany(tt => tt.Entries());
         }
 
         /// <summary>
-        ///   Gets the changed objects of a certain type.
+        /// Returns the tracked entries of a specific type
         /// </summary>
-        /// <returns> </returns>
+        /// <typeparam name="TEntity">The type of the entity.</typeparam>
+        /// <returns></returns>
         public IEnumerable<TrackedObject<TEntity>> Entries<TEntity>() where TEntity : class, new()
         {
-            return _trackedObjects.Values.OfType<TrackedObject<TEntity>>();
-        }
+            ITableMutationTracker mutationTracker = _tableTrackers
+                .Where(kvp => kvp.Key.Type == typeof(TEntity))
+                .Select(kvp => kvp.Value)
+                .FirstOrDefault();
 
-        /// <summary>
-        ///   Tries to the get tracked object.
-        /// </summary>
-        /// <param name="key"> The key. </param>
-        /// <param name="trackedObject"> The tracked object. </param>
-        /// <returns> true if an object with a certain key was tracked </returns>
-        internal bool TryGetTrackedObject(ObjectKey key, out TrackedObject trackedObject)
-        {
-            return _trackedObjects.TryGetValue(key, out trackedObject);
+            if (mutationTracker != null)
+                return mutationTracker.Entries().Cast<TrackedObject<TEntity>>();
+
+            return Enumerable.Empty<TrackedObject<TEntity>>();
         }
 
         /// <summary>
@@ -150,7 +82,7 @@ namespace CqlSharp.Linq.Mutations
         public bool DetectChanges()
         {
             bool hasChanges = false;
-            foreach (var trackedObject in _trackedObjects.Values)
+            foreach (var trackedObject in Entries())
             {
                 hasChanges |= trackedObject.DetectChanges();
             }

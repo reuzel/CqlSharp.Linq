@@ -25,12 +25,15 @@ namespace CqlSharp.Linq.Expressions
         private readonly Expression _projection;
         private readonly ResultFunction _resultFunction;
         private readonly SelectStatementExpression _select;
+        private readonly bool _canTrackChanges;
 
-        public ProjectionExpression(SelectStatementExpression select, Expression projection,
+
+        public ProjectionExpression(SelectStatementExpression select, Expression projection, bool canTrackChanges,
                                     ResultFunction resultFunction)
         {
             _select = @select;
             _projection = projection;
+            _canTrackChanges = canTrackChanges;
             _resultFunction = resultFunction;
         }
 
@@ -46,12 +49,17 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) CqlExpressionType.Projection; }
+            get { return (ExpressionType)CqlExpressionType.Projection; }
         }
 
         public ResultFunction ResultFunction
         {
             get { return _resultFunction; }
+        }
+
+        public bool CanTrackChanges
+        {
+            get { return _canTrackChanges; }
         }
 
         protected override Expression Accept(ExpressionVisitor visitor)
@@ -68,11 +76,11 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            var selector = (SelectStatementExpression) visitor.Visit(_select);
+            var selector = (SelectStatementExpression)visitor.Visit(_select);
             var projector = visitor.Visit(_projection);
 
             if (selector != _select || projector != _projection)
-                return new ProjectionExpression(selector, projector, _resultFunction);
+                return new ProjectionExpression(selector, projector, _canTrackChanges, _resultFunction);
 
             return this;
         }

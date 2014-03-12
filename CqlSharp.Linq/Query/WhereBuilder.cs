@@ -55,7 +55,7 @@ namespace CqlSharp.Linq.Query
                                                               select.Limit,
                                                               select.AllowFiltering);
 
-            return new ProjectionExpression(newSelectStmt, projection.Projection, projection.ResultFunction);
+            return new ProjectionExpression(newSelectStmt, projection.Projection, projection.CanTrackChanges, projection.ResultFunction);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
