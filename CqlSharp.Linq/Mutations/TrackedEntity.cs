@@ -205,8 +205,8 @@ namespace CqlSharp.Linq.Mutations
                 return true;
 
             //make sure the entity did not switch key
-            var originalKey = EntityKey.Create(Original);
-            var entityKey = EntityKey.Create(Object);
+            var originalKey = EntityKey<TEntity>.Create(Original);
+            var entityKey = EntityKey<TEntity>.Create(Object);
             if (!originalKey.Equals(entityKey))
                 throw new CqlLinqException("Illegal change detected: A tracked object has changed its key");
 
@@ -260,7 +260,7 @@ namespace CqlSharp.Linq.Mutations
         public override void SetOriginalValues(object newOriginal)
         {
             var newOriginalEntity = (TEntity)newOriginal;
-            if (EntityKey.Create(newOriginalEntity) != EntityKey.Create(Object))
+            if (EntityKey<TEntity>.Create(newOriginalEntity) != EntityKey<TEntity>.Create(Object))
                 throw new ArgumentException(
                     "The new original values represent an different entity than the one tracked. The key values do not match",
                     "newOriginal");
@@ -275,7 +275,7 @@ namespace CqlSharp.Linq.Mutations
         public override void SetObjectValues(object newValues)
         {
             var newValuesEntity = (TEntity)newValues;
-            if (EntityKey.Create(newValuesEntity) != EntityKey.Create(Original))
+            if (EntityKey<TEntity>.Create(newValuesEntity) != EntityKey<TEntity>.Create(Original))
                 throw new ArgumentException(
                     "The new object values represent an different entity than the one tracked. The key values do not match",
                     "newValues");

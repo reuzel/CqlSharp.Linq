@@ -120,7 +120,7 @@ namespace CqlSharp.Linq
         /// <returns></returns>
         public TEntity Find(params object[] keyValues)
         {
-            var key = EntityKey.Create<TEntity>(keyValues);
+            var key = EntityKey<TEntity>.Create(keyValues);
 
             var tracker = _context.MutationTracker.GetTracker(this);
 
@@ -128,7 +128,7 @@ namespace CqlSharp.Linq
             if (!tracker.TryGetTrackedObject(key, out trackedEntity))
             {
                 //object not found, create a tracked object
-                trackedEntity = new TrackedEntity<TEntity>(this, key.GetKeyValues<TEntity>(), default(TEntity), EntityState.Detached);
+                trackedEntity = new TrackedEntity<TEntity>(this, key.GetKeyValues(), default(TEntity), EntityState.Detached);
 
                 //load any existing values from the database
                 trackedEntity.Reload();
