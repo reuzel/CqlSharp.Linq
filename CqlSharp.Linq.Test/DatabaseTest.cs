@@ -49,14 +49,22 @@ namespace CqlSharp.Linq.Test
                     var createTable = new CqlCommand(connection, createTableCql);
                     createTable.ExecuteNonQuery();
 
-                    var insert = new CqlCommand(connection, "insert into linqtest.myvalue (id,value) values(?,?)");
-                    insert.Prepare();
-
-                    for (int i = 0; i < 10000; i++)
+                    using (var transaction = connection.BeginTransaction())
                     {
-                        insert.Parameters[0].Value = i;
-                        insert.Parameters[1].Value = "Hallo " + i;
-                        insert.ExecuteNonQuery();
+                        transaction.BatchType = CqlBatchType.Unlogged;
+
+                        var insert = new CqlCommand(connection, "insert into linqtest.myvalue (id,value) values(?,?)");
+                        insert.Transaction = transaction;
+                        insert.Prepare();
+
+                        for (int i = 0; i < 10000; i++)
+                        {
+                            insert.Parameters[0].Value = i;
+                            insert.Parameters[1].Value = "Hallo " + i;
+                            insert.ExecuteNonQuery();
+                        }
+
+                        transaction.Commit();
                     }
                 }
                 catch (AlreadyExistsException)
@@ -98,6 +106,16 @@ namespace CqlSharp.Linq.Test
             {
                 var value = context.Values.Where(v => v.Id == 1).Select(v => v.Value).First();
                 Assert.AreEqual("Hallo 1", value);
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidException))]
+        public void WhereUsingWrongKey()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Where(v => v.Value == "Hallo 1").Select(v => v.Id).First();
             }
         }
 

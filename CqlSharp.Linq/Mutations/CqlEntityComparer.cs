@@ -13,15 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {
-    public class CqlEntityComparer<TEntity> : IEqualityComparer<TEntity>, IEqualityComparer
+    /// <summary>
+    ///   Compares two Cql entities based on their key values
+    /// </summary>
+    /// <typeparam name="TEntity"> The type of the entity. </typeparam>
+    internal class CqlEntityComparer<TEntity> : IEqualityComparer<TEntity>, IEqualityComparer where TEntity : class
     {
         /// <summary>
         ///   The singleton instance
@@ -43,7 +47,7 @@ namespace CqlSharp.Linq.Mutations
         ///   are of different types and neither one can handle comparisons with the other.</exception>
         public new bool Equals(object x, object y)
         {
-            return Equals((TEntity) x, (TEntity) y);
+            return Equals((TEntity)x, (TEntity)y);
         }
 
         /// <summary>
@@ -58,19 +62,19 @@ namespace CqlSharp.Linq.Mutations
         ///   is null.</exception>
         public int GetHashCode(object obj)
         {
-            return GetHashCode((TEntity) obj);
+            return GetHashCode((TEntity)obj);
         }
 
         #endregion
 
-        #region IEqualityComparer<TObject> Members
+        #region IEqualityComparer<TEntity> Members
 
         /// <summary>
         ///   Determines whether the specified objects are equal.
         /// </summary>
+        /// <param name="x"> The first object of type <paramref name="x" /> to compare. </param>
+        /// <param name="y"> The second object of type <paramref name="y" /> to compare. </param>
         /// <returns> true if the specified objects are equal; otherwise, false. </returns>
-        /// <param name="x"> The first object of type <paramref name="T" /> to compare. </param>
-        /// <param name="y"> The second object of type <paramref name="T" /> to compare. </param>
         public bool Equals(TEntity x, TEntity y)
         {
             var accessor = ObjectAccessor<TEntity>.Instance;
@@ -83,7 +87,7 @@ namespace CqlSharp.Linq.Mutations
 
                     if (column.CqlType == CqlType.List || column.CqlType == CqlType.Map || column.CqlType == CqlType.Set)
                     {
-                        if (!TypeSystem.SequenceEqual((IEnumerable) valX, (IEnumerable) valY))
+                        if (!TypeSystem.SequenceEqual((IEnumerable)valX, (IEnumerable)valY))
                             return false;
                     }
                     else if (!Object.Equals(valX, valY))
@@ -114,11 +118,13 @@ namespace CqlSharp.Linq.Mutations
             int hashCode = 1;
 
             var accessor = ObjectAccessor<TEntity>.Instance;
+            // ReSharper disable LoopCanBeConvertedToQuery
             foreach (var column in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
             {
                 var value = column.ReadFunction(obj);
-                hashCode = hashCode*31 + (value == null ? 0 : value.GetHashCode());
+                hashCode = hashCode * 31 + (value == null ? 0 : value.GetHashCode());
             }
+            // ReSharper restore LoopCanBeConvertedToQuery
 
             return hashCode;
         }

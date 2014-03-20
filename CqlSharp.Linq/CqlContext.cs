@@ -41,6 +41,7 @@ namespace CqlSharp.Linq
         /// <value> The CQL query provider. </value>
         internal CqlQueryProvider CqlQueryProvider { get; private set; }
 
+
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlContext" /> class.
         /// </summary>
@@ -51,7 +52,7 @@ namespace CqlSharp.Linq
             SkipExecute = false;
 #endif
             _tables = new ConcurrentDictionary<Type, ICqlTable>();
-            MutationTracker = new MutationTracker();
+            ChangeTracker = new ChangeTracker(this);
             CqlQueryProvider = new CqlQueryProvider(this);
 
             if (initializeTables)
@@ -163,7 +164,7 @@ namespace CqlSharp.Linq
         ///   Gets the mutation tracker.
         /// </summary>
         /// <value> The mutation tracker. </value>
-        public MutationTracker MutationTracker { get; private set; }
+        public ChangeTracker ChangeTracker { get; private set; }
 
         /// <summary>
         ///   Saves the changes with the required consistency level.
@@ -171,60 +172,34 @@ namespace CqlSharp.Linq
         /// <param name="consistency"> The consistency level. Defaults to one. </param>
         public void SaveChanges(CqlConsistency consistency = CqlConsistency.One)
         {
-            if (MutationTracker.HasChanges())
-            {
-                using (var connection = new CqlConnection(ConnectionString))
-                {
-                    connection.Open();
-
-                    foreach (var trackedObject in MutationTracker.Entries())
-                    {
-                        if (trackedObject.State != EntityState.Unchanged)
-                        {
-                            var cql = trackedObject.GetDmlStatement();
-                            if (Log != null) Log(cql);
-
-                            var command = new CqlCommand(connection, cql, consistency);
-                            command.PartitionKey.Set(trackedObject.Object);
-                            command.ExecuteNonQueryAsync();
-                            trackedObject.SetOriginalValues(trackedObject.Object);
-                        }
-                    }
-                }
-            }
+            ChangeTracker.SaveChanges(consistency);
         }
 
         /// <summary>
         ///   Saves the changes with the required consistency level.
         /// </summary>
-        /// <param name="cancellationToken"> the cancellation token </param>
-        /// <param name="consistency"> The consistency level. Defaults to one. </param>
-        public async Task SaveChangesAsync(CancellationToken cancellationToken,
-                                           CqlConsistency consistency = CqlConsistency.One)
+        /// <param name="cancellationToken">the cancellation token </param>
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            return SaveChangesAsync(CqlConsistency.One, cancellationToken);
+        }
 
-            if (MutationTracker.HasChanges())
-            {
-                using (var connection = new CqlConnection(ConnectionString))
-                {
-                    await connection.OpenAsync(cancellationToken);
-
-                    foreach (var trackedObject in MutationTracker.Entries())
-                    {
-                        if (trackedObject.State != EntityState.Unchanged)
-                        {
-                            var cql = trackedObject.GetDmlStatement();
-                            if (Log != null) Log(cql);
-
-                            var command = new CqlCommand(connection, cql, consistency);
-                            command.PartitionKey.Set(trackedObject.Object);
-                            await command.ExecuteNonQueryAsync(cancellationToken);
-                            trackedObject.SetOriginalValues(trackedObject.Object);
-                        }
-                    }
-                }
-            }
+        /// <summary>
+        ///   Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="consistency"> The consistency level. Defaults to one. </param>
+        public Task SaveChangesAsync(CqlConsistency consistency = CqlConsistency.One)
+        {
+            return SaveChangesAsync(consistency, CancellationToken.None);
+        }
+        /// <summary>
+        ///   Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="cancellationToken"> the cancellation token </param>
+        /// <param name="consistency"> The consistency level </param>
+        public Task SaveChangesAsync(CqlConsistency consistency, CancellationToken cancellationToken)
+        {
+            return ChangeTracker.SaveChangesAsync(consistency, cancellationToken);
         }
     }
 }

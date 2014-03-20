@@ -20,10 +20,29 @@ namespace CqlSharp.Linq.Mutations
     /// </summary>
     public enum EntityState
     {
+        /// <summary>
+        ///   Indicates that an entity has not changed any values
+        /// </summary>
         Unchanged,
+
+        /// <summary>
+        ///   Indicates that an entity has been added to a table
+        /// </summary>
         Added,
+
+        /// <summary>
+        ///   Indicates that an entity has different values compared to the loaded database values
+        /// </summary>
         Modified,
+
+        /// <summary>
+        ///   Indicates that an entity has been deleted from a table
+        /// </summary>
         Deleted,
+
+        /// <summary>
+        ///   Indicates that an entity has no longer refers to a row in a database table
+        /// </summary>
         Detached
     }
 }

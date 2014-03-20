@@ -22,7 +22,8 @@ namespace CqlSharp.Linq.Mutations
     /// <summary>
     ///   Defines a key from a table entry
     /// </summary>
-    internal struct EntityKey<TEntity> where TEntity : class, new()
+    /// <typeparam name="TEntity"> The type of the entity. </typeparam>
+    public struct EntityKey<TEntity> : IEntityKey where TEntity : class, new()
     {
         /// <summary>
         ///   The object from which the key is derived
@@ -33,10 +34,54 @@ namespace CqlSharp.Linq.Mutations
         ///   Initializes a new instance of the <see cref="EntityKey{TEntity}" /> struct.
         /// </summary>
         /// <param name="entity"> The entity containing the key values. </param>
-        private EntityKey(TEntity entity)
+        internal EntityKey(TEntity entity)
         {
             _entity = entity;
         }
+
+        /// <summary>
+        ///   Gets the values that make up this key.
+        /// </summary>
+        /// <value> The values. </value>
+        internal TEntity Values
+        {
+            get { return _entity; }
+        }
+
+        #region IEntityKey Members
+
+        /// <summary>
+        ///   Determines whether this key is the key of the specified entity.
+        /// </summary>
+        /// <param name="entity"> The entity. </param>
+        /// <returns> </returns>
+        bool IEntityKey.IsKeyOf(object entity)
+        {
+            if (entity == null) return false;
+            if (entity.GetType() != typeof(TEntity)) return false;
+            return IsKeyOf((TEntity)entity);
+        }
+
+        /// <summary>
+        ///   Determines whether the specified <see cref="System.Object"></see>, is equal to this instance.
+        /// </summary>
+        /// <param name="obj"> The <see cref="System.Object" /> to compare with this instance. </param>
+        /// <returns> <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c> . </returns>
+        bool IEntityKey.Equals(object obj)
+        {
+            return Equals(obj);
+        }
+
+        /// <summary>
+        ///   Returns a hash code for this instance.
+        /// </summary>
+        /// <returns> A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. </returns>
+        int IEntityKey.GetHashCode()
+        {
+            return GetHashCode();
+        }
+
+        #endregion
 
         /// <summary>
         ///   Creates an EntityKey from the specified entity.
@@ -44,7 +89,7 @@ namespace CqlSharp.Linq.Mutations
         /// <typeparam name="TEntity"> The type of the entity. </typeparam>
         /// <param name="entity"> The entity. </param>
         /// <returns> </returns>
-        public static EntityKey<TEntity> Create(TEntity entity)
+        internal static EntityKey<TEntity> Create(TEntity entity)
         {
             var keyValues = entity.Clone(keyOnly: true);
             return new EntityKey<TEntity>(keyValues);
@@ -59,7 +104,7 @@ namespace CqlSharp.Linq.Mutations
         /// <exception cref="System.ArgumentException">Not all required key values are provided
         ///   or
         ///   the types of the keyValues do not match the required types for the entity keys</exception>
-        public static EntityKey<TEntity> Create(params object[] keyValues)
+        internal static EntityKey<TEntity> Create(params object[] keyValues)
         {
             var accessor = ObjectAccessor<TEntity>.Instance;
             var keyObject = Activator.CreateInstance<TEntity>();
@@ -83,12 +128,13 @@ namespace CqlSharp.Linq.Mutations
         }
 
         /// <summary>
-        ///   Gets the key values.
+        ///   Determines whether this key represents the key of the specified entity.
         /// </summary>
+        /// <param name="entity"> The entity. </param>
         /// <returns> </returns>
-        public TEntity GetKeyValues()
+        public bool IsKeyOf(TEntity entity)
         {
-            return _entity;
+            return CqlEntityComparer<TEntity>.Instance.Equals(entity, _entity);
         }
 
         /// <summary>

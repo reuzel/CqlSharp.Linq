@@ -19,6 +19,7 @@ using CqlSharp.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CqlSharp.Linq
 {
@@ -29,6 +30,7 @@ namespace CqlSharp.Linq
     public class CqlTable<TEntity> : CqlQuery<TEntity>, ICqlTable where TEntity : class, new()
     {
         private readonly CqlContext _context;
+        private TableChangeTracker<TEntity> _tracker;
 
         internal CqlTable(CqlContext context)
             : base(context.CqlQueryProvider)
@@ -52,6 +54,16 @@ namespace CqlSharp.Linq
 
         #region Change Tracking
 
+        private TableChangeTracker<TEntity> ChangeTracker
+        {
+            get
+            {
+                if (_tracker == null)
+                    _tracker = _context.ChangeTracker.GetTableChangeTracker<TEntity>();
+
+                return _tracker;
+            }
+        }
         /// <summary>
         /// Gets the objects that are tracked as part of this table
         /// </summary>
@@ -60,16 +72,16 @@ namespace CqlSharp.Linq
         /// </value>
         public IEnumerable<TEntity> Local
         {
-            get { return _context.MutationTracker.GetTracker(this).Entries().Select(to => (TEntity)to.Object); }
+            get { return ChangeTracker.Entries().Select(entry => entry.Entity); }
         }
 
         /// <summary>
         /// Adds the specified entity in added state.
         /// </summary>
         /// <param name="entity">The entity.</param>
-        public void Add(TEntity entity)
+        public bool Add(TEntity entity)
         {
-            _context.MutationTracker.GetTracker(this).Add(entity);
+            return ChangeTracker.Add(entity);
         }
 
         /// <summary>
@@ -79,7 +91,7 @@ namespace CqlSharp.Linq
         /// <returns></returns>
         public bool Attach(TEntity entity)
         {
-            return _context.MutationTracker.GetTracker(this).Attach(entity);
+            return ChangeTracker.Attach(entity);
         }
 
         /// <summary>
@@ -89,7 +101,7 @@ namespace CqlSharp.Linq
         /// <returns></returns>
         public bool Detach(TEntity entity)
         {
-            return _context.MutationTracker.GetTracker(this).Detach(entity);
+            return ChangeTracker.Detach(entity);
         }
 
         /// <summary>
@@ -98,7 +110,7 @@ namespace CqlSharp.Linq
         /// <param name="entity">The entity.</param>
         public void Delete(TEntity entity)
         {
-            _context.MutationTracker.GetTracker(this).Delete(entity);
+            ChangeTracker.Delete(entity);
         }
 
         /// <summary>
@@ -107,9 +119,8 @@ namespace CqlSharp.Linq
         /// <param name="entities">The entities.</param>
         public void AddRange(IEnumerable<TEntity> entities)
         {
-            TableMutationTracker<TEntity> mutationTracker = _context.MutationTracker.GetTracker(this);
             foreach (var entity in entities)
-                mutationTracker.Add(entity);
+                ChangeTracker.Add(entity);
         }
 
         /// <summary>
@@ -122,28 +133,63 @@ namespace CqlSharp.Linq
         {
             var key = EntityKey<TEntity>.Create(keyValues);
 
-            var tracker = _context.MutationTracker.GetTracker(this);
-
-            TrackedEntity<TEntity> trackedEntity;
-            if (!tracker.TryGetTrackedObject(key, out trackedEntity))
+            TEntity entity;
+            if (!ChangeTracker.TryGetEntityByKey(key, out entity))
             {
-                //object not found, create a tracked object
-                trackedEntity = new TrackedEntity<TEntity>(this, key.GetKeyValues(), default(TEntity), EntityState.Detached);
+                using (var connection = new CqlConnection(_context.ConnectionString))
+                {
+                    connection.Open();
 
-                //load any existing values from the database
-                trackedEntity.Reload();
+                    var query = CqlBuilder<TEntity>.GetSelectQuery(this, key);
+                    if (_context.Log != null) _context.Log(query);
 
-                //add the object, or return existing one if we were raced
-                trackedEntity = tracker.GetOrAdd(trackedEntity);
+                    var command = new CqlCommand(connection, query);
+                    using (var reader = command.ExecuteReader<TEntity>())
+                    {
+                        if (reader.Read())
+                        {
+                            entity = ChangeTracker.GetOrAttach(reader.Current);
+                        }
+                    }
+                }
             }
 
-            //check state
-            if (trackedEntity.State != EntityState.Detached)
-                return trackedEntity.Object;
-
-            return default(TEntity);
+            return entity;
         }
 
+        /// <summary>
+        /// Finds an entity based on the specified key values. If this entity is already
+        /// tracked, the tracked entity is returned (and no database call is made).
+        /// </summary>
+        /// <param name="keyValues">The key values.</param>
+        /// <returns></returns>
+        public async Task<TEntity> FindAsync(params object[] keyValues)
+        {
+            var key = EntityKey<TEntity>.Create(keyValues);
+
+            TEntity entity;
+            if (!ChangeTracker.TryGetEntityByKey(key, out entity))
+            {
+                using (var connection = new CqlConnection(_context.ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var query = CqlBuilder<TEntity>.GetSelectQuery(this, key);
+                    if (_context.Log != null) _context.Log(query);
+
+                    var command = new CqlCommand(connection, query);
+                    using (var reader = await command.ExecuteReaderAsync<TEntity>())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            entity = ChangeTracker.GetOrAttach(reader.Current);
+                        }
+                    }
+                }
+            }
+
+            return entity;
+        }
 
 
         #endregion

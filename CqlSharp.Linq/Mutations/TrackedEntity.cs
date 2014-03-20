@@ -17,186 +17,156 @@ using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace CqlSharp.Linq.Mutations
 {
     /// <summary>
-    ///   Tracks changes to a single object
-    /// </summary>
-    public abstract class TrackedEntity
-    {
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="TrackedEntity{TEntity}" /> class.
-        /// </summary>
-        /// <param name="table"> </param>
-        /// <param name="entity"> The entity. </param>
-        /// <param name="original"> </param>
-        /// <param name="entityState"> The State. </param>
-        protected TrackedEntity(ICqlTable table, Object entity, Object original, EntityState entityState)
-        {
-            if (table == null) throw new ArgumentNullException("table");
-            if (entity == null) throw new ArgumentNullException("entity");
-
-            if (entityState == EntityState.Modified)
-                throw new ArgumentException(
-                    "Can't start tracked a object in Modified, as it is not known what was changed", "entityState");
-
-            State = entityState;
-            Table = table;
-            Object = entity;
-            Original = original;
-            ChangedColumns = null;
-        }
-
-        /// <summary>
-        ///   Gets or sets the state.
-        /// </summary>
-        /// <value> The state. </value>
-        public EntityState State { get; protected set; }
-
-        /// <summary>
-        ///   the columns that were changed
-        /// </summary>
-        public IEnumerable<ICqlColumnInfo> ChangedColumns { get; protected set; }
-
-        /// <summary>
-        ///   Gets the object being tracked
-        /// </summary>
-        /// <value> The object. </value>
-        public Object Object { get; private set; }
-
-        /// <summary>
-        ///   Gets the original values of the object
-        /// </summary>
-        /// <value> The object. </value>
-        public Object Original { get; protected set; }
-
-        /// <summary>
-        ///   Gets the table.
-        /// </summary>
-        /// <value> The table. </value>
-        public ICqlTable Table { get; private set; }
-
-        /// <summary>
-        ///   Detects if the tracked object has changed state
-        /// </summary>
-        /// <returns> </returns>
-        internal abstract bool DetectChanges();
-
-        /// <summary>
-        ///   Gets the DML Cql statement describing the required changes.
-        /// </summary>
-        /// <returns> </returns>
-        internal abstract string GetDmlStatement();
-
-        /// <summary>
-        ///   Reloads the entity from the database. If the entity was found, the database
-        ///   values will be copied into the original and object values, resulting in a 
-        ///   Unchanged state. When the entity was not found in the database, the entity
-        ///   will enter the Detached state.
-        /// </summary>
-        public abstract void Reload();
-
-        /// <summary>
-        /// Sets the object values.
-        /// </summary>
-        /// <param name="newValues">The new values.</param>
-        public abstract void SetObjectValues(object newValues);
-
-        /// <summary>
-        /// Sets the original values.
-        /// </summary>
-        /// <param name="newOriginal">The new original.</param>
-        public abstract void SetOriginalValues(object newOriginal);
-    }
-
-    /// <summary>
     ///   Tracks the changes to a single object of a specific type
     /// </summary>
     /// <typeparam name="TEntity"> The type of the entity. </typeparam>
-    public class TrackedEntity<TEntity> : TrackedEntity where TEntity : class, new()
+    public class TrackedEntity<TEntity> : ITrackedEntity where TEntity : class, new()
     {
+        private TEntity _original;
+
         /// <summary>
         ///   Initializes a new instance of the <see cref="TrackedEntity{TEntity}" /> class.
         /// </summary>
         /// <param name="table"> The table. </param>
+        /// <param name="key"> the key of the entity being tracked </param>
         /// <param name="entity"> The entity. </param>
         /// <param name="original"> The original. </param>
         /// <param name="entityState"> State of the object. </param>
-        public TrackedEntity(ICqlTable table, TEntity entity, TEntity original, EntityState entityState)
-            : base(table, entity, original, entityState)
+        public TrackedEntity(CqlTable<TEntity> table, EntityKey<TEntity> key, TEntity entity, TEntity original,
+                             EntityState entityState)
         {
+            Original = original;
+            Table = table;
+            Key = key;
+            Entity = entity;
+            State = entityState;
         }
 
         /// <summary>
-        /// Gets the reload CQL statement.
+        ///   Gets the table this entity belongs to
         /// </summary>
-        /// <returns></returns>
-        private string GetReloadCql()
-        {
-            var accessor = ObjectAccessor<TEntity>.Instance;
+        /// <value> The table. </value>
+        public CqlTable<TEntity> Table { get; private set; }
 
-            var sb = new StringBuilder();
-            sb.Append("SELECT ");
-
-            bool firstColumn = true;
-            foreach (var column in accessor.Columns)
-            {
-                if (!firstColumn)
-                {
-                    sb.Append(",");
-                }
-                sb.Append(" \"");
-                sb.Append(column.Name);
-                sb.Append("\"");
-                firstColumn = false;
-            }
-            sb.Append(" FROM \"");
-            sb.Append(Table.Name);
-            sb.Append("\" WHERE");
-
-            firstColumn = true;
-            foreach (var keyColumn in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
-            {
-                if (!firstColumn)
-                    sb.Append(" AND ");
-                sb.Append(" \"");
-                sb.Append(keyColumn.Name);
-                sb.Append("\"=");
-                var value = keyColumn.ReadFunction(Object);
-                sb.Append(TypeSystem.ToStringValue(value, keyColumn.CqlType));
-                firstColumn = false;
-            }
-
-            return sb.ToString();
-        }
         /// <summary>
-        ///   Gets the object being tracked
+        ///   Gets the changed columns.
         /// </summary>
-        /// <value> The object. </value>
-        public new TEntity Object
-        {
-            get { return (TEntity)base.Object; }
-        }
+        /// <value> The changed columns. </value>
+        internal List<CqlColumnInfo<TEntity>> ChangedColumns { get; private set; }
+
+        /// <summary>
+        ///   Gets the key defining this entity.
+        /// </summary>
+        /// <value> The key. </value>
+        public EntityKey<TEntity> Key { get; private set; }
+
+        /// <summary>
+        ///   Gets the entity being tracked.
+        /// </summary>
+        /// <value> The entity. </value>
+        public TEntity Entity { get; private set; }
+
+        /// <summary>
+        ///   Gets the state of this entity (added/removed/unchanged).
+        /// </summary>
+        /// <value> The state. </value>
+        public EntityState State { get; internal set; }
 
         /// <summary>
         ///   Gets the original values of the object
         /// </summary>
         /// <value> The object. </value>
-        public new TEntity Original
+        public TEntity Original
         {
-            get { return (TEntity)base.Original; }
-            protected set { base.Original = value; }
+            get { return _original.Clone(); }
+            private set { _original = value; }
         }
+
+        #region ITrackedEntity Members
+
+        /// <summary>
+        ///   Gets the table this entity is part of.
+        /// </summary>
+        /// <value> The table. </value>
+        ICqlTable ITrackedEntity.Table
+        {
+            get { return Table; }
+        }
+
+        /// <summary>
+        ///   Gets the key that uniquely identifies this entity within the table.
+        /// </summary>
+        /// <value> The key. </value>
+        IEntityKey ITrackedEntity.Key
+        {
+            get { return Key; }
+        }
+
+        /// <summary>
+        ///   Gets the current entity values
+        /// </summary>
+        /// <value> The entity. </value>
+        object ITrackedEntity.Entity
+        {
+            get { return Entity; }
+        }
+
+        /// <summary>
+        ///   Gets the original values as last read from the database.
+        /// </summary>
+        /// <value> The original. </value>
+        object ITrackedEntity.Original
+        {
+            get { return Original; }
+        }
+
+        /// <summary>
+        ///   Gets the modification state of this entity .
+        /// </summary>
+        /// <value> The state. </value>
+        EntityState ITrackedEntity.State
+        {
+            get { return State; }
+        }
+
+        /// <summary>
+        ///   Sets the original values of this entity.
+        /// </summary>
+        /// <param name="newOriginal"> The new original. </param>
+        void ITrackedEntity.SetOriginalValues(object newOriginal)
+        {
+            SetOriginalValues((TEntity)newOriginal);
+        }
+
+        /// <summary>
+        ///   Sets the object values.
+        /// </summary>
+        /// <param name="newValues"> The new values. </param>
+        void ITrackedEntity.SetObjectValues(object newValues)
+        {
+            SetObjectValues((TEntity)newValues);
+        }
+
+        /// <summary>
+        ///   Reloads this instance from the database, effectively making it unchanged.
+        /// </summary>
+        void ITrackedEntity.Reload()
+        {
+            Reload();
+        }
+
+        #endregion
 
         /// <summary>
         ///   Detects the changes.
         /// </summary>
         /// <returns> </returns>
         /// <exception cref="CqlLinqException">Illegal change detected: A tracked object has changed its key</exception>
-        internal override bool DetectChanges()
+        internal bool DetectChanges()
         {
             if (State == EntityState.Detached)
                 return false;
@@ -205,10 +175,8 @@ namespace CqlSharp.Linq.Mutations
                 return true;
 
             //make sure the entity did not switch key
-            var originalKey = EntityKey<TEntity>.Create(Original);
-            var entityKey = EntityKey<TEntity>.Create(Object);
-            if (!originalKey.Equals(entityKey))
-                throw new CqlLinqException("Illegal change detected: A tracked object has changed its key");
+            if (!Key.IsKeyOf(Entity))
+                throw new CqlLinqException("Illegal change detected: A tracked entity has changed its key");
 
             if (State == EntityState.Added)
                 return true;
@@ -220,7 +188,7 @@ namespace CqlSharp.Linq.Mutations
                 if (column.ReadFunction != null)
                 {
                     var original = column.ReadFunction(Original);
-                    var actual = column.ReadFunction(Object);
+                    var actual = column.ReadFunction(Entity);
 
                     if (column.CqlType == CqlType.List || column.CqlType == CqlType.Map || column.CqlType == CqlType.Set)
                     {
@@ -248,52 +216,54 @@ namespace CqlSharp.Linq.Mutations
             return false;
         }
 
-        internal override string GetDmlStatement()
+        /// <summary>
+        ///   Gets the DML statement.
+        /// </summary>
+        /// <returns> </returns>
+        internal string GetDmlStatement()
         {
-            return CqlDmlBuilder<TEntity>.BuildDmlQuery(this);
+            return CqlBuilder<TEntity>.BuildDmlQuery(this);
         }
 
         /// <summary>
         ///   Sets the original values
         /// </summary>
         /// <param name="newOriginal"> The values to use as original values, which should represent the known database state </param>
-        public override void SetOriginalValues(object newOriginal)
+        public void SetOriginalValues(TEntity newOriginal)
         {
-            var newOriginalEntity = (TEntity)newOriginal;
-            if (EntityKey<TEntity>.Create(newOriginalEntity) != EntityKey<TEntity>.Create(Object))
+            if (!Key.IsKeyOf(newOriginal))
                 throw new ArgumentException(
                     "The new original values represent an different entity than the one tracked. The key values do not match",
                     "newOriginal");
 
-            Original = newOriginalEntity.Clone();
+            Original = newOriginal.Clone();
         }
 
         /// <summary>
         ///   Sets object values
         /// </summary>
         /// <param name="newValues"> The values to use as object values, which should represent the new (uncommitted) database state </param>
-        public override void SetObjectValues(object newValues)
+        public void SetObjectValues(TEntity newValues)
         {
-            var newValuesEntity = (TEntity)newValues;
-            if (EntityKey<TEntity>.Create(newValuesEntity) != EntityKey<TEntity>.Create(Original))
+            if (!Key.IsKeyOf(newValues))
                 throw new ArgumentException(
                     "The new object values represent an different entity than the one tracked. The key values do not match",
                     "newValues");
 
-            newValuesEntity.CopyTo(Object);
+            newValues.CopyTo(Entity);
         }
 
         /// <summary>
         ///   Reloads this instance.
         /// </summary>
-        public override void Reload()
+        public void Reload()
         {
             using (var connection = new CqlConnection(Table.Context.ConnectionString))
             {
                 connection.Open();
 
-                var cql = GetReloadCql();
-                if(Table.Context.Log!=null)Table.Context.Log(cql);
+                var cql = CqlBuilder<TEntity>.GetSelectQuery(Table, Key);
+                if (Table.Context.Log != null) Table.Context.Log(cql);
 
                 var command = new CqlCommand(connection, cql);
 

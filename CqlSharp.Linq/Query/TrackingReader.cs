@@ -42,7 +42,7 @@ namespace CqlSharp.Linq.Query
         public IEnumerator<TEntity> GetEnumerator()
         {
             var table = _context.GetTable<TEntity>();
-            var tracker = _context.MutationTracker.GetTracker(table);
+            var tracker = _context.ChangeTracker.GetTableChangeTracker<TEntity>();
 
             using (var connection = new CqlConnection(_context.ConnectionString))
             {
@@ -56,7 +56,7 @@ namespace CqlSharp.Linq.Query
                     while (reader.Read())
                     {
                         var value = _projector(reader);
-                        yield return tracker.GetOrAdd(value);
+                        yield return tracker.GetOrAttach(value);
                     }
                 }
             }

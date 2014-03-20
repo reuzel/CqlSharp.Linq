@@ -20,9 +20,52 @@ using System.Text;
 
 namespace CqlSharp.Linq.Mutations
 {
-    internal static class CqlDmlBuilder<TEntity> where TEntity: class, new()
+    internal static class CqlBuilder<TEntity> where TEntity : class, new()
     {
         private static readonly ObjectAccessor<TEntity> Accessor = ObjectAccessor<TEntity>.Instance;
+
+        /// <summary>
+        ///   Gets the reload CQL statement.
+        /// </summary>
+        /// <returns> </returns>
+        public static string GetSelectQuery(CqlTable<TEntity> table, EntityKey<TEntity> key)
+        {
+            var accessor = ObjectAccessor<TEntity>.Instance;
+
+            var sb = new StringBuilder();
+            sb.Append("SELECT ");
+
+            bool firstColumn = true;
+            foreach (var column in accessor.Columns)
+            {
+                if (!firstColumn)
+                {
+                    sb.Append(",");
+                }
+                sb.Append(" \"");
+                sb.Append(column.Name);
+                sb.Append("\"");
+                firstColumn = false;
+            }
+            sb.Append(" FROM \"");
+            sb.Append(table.Name);
+            sb.Append("\" WHERE");
+
+            firstColumn = true;
+            foreach (var keyColumn in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
+            {
+                if (!firstColumn)
+                    sb.Append(" AND ");
+                sb.Append(" \"");
+                sb.Append(keyColumn.Name);
+                sb.Append("\"=");
+                var value = keyColumn.ReadFunction(key.Values);
+                sb.Append(TypeSystem.ToStringValue(value, keyColumn.CqlType));
+                firstColumn = false;
+            }
+
+            return sb.ToString();
+        }
 
         /// <summary>
         ///   Builds the DML query.
@@ -94,7 +137,7 @@ namespace CqlSharp.Linq.Mutations
                 builder.Append(column.Name.Replace("\"", "\"\""));
                 builder.Append("\"=");
 
-                var value = column.ReadFunction(trackedEntity.Object);
+                var value = column.ReadFunction(trackedEntity.Entity);
                 builder.Append(TypeSystem.ToStringValue(value, column.CqlType));
 
                 first = false;
@@ -112,7 +155,7 @@ namespace CqlSharp.Linq.Mutations
                 builder.Append("\"");
                 builder.Append(keyColumn.Name.Replace("\"", "\"\""));
                 builder.Append("\"=");
-                var value = keyColumn.ReadFunction(trackedEntity.Object);
+                var value = keyColumn.ReadFunction(trackedEntity.Entity);
                 builder.Append(TypeSystem.ToStringValue(value, keyColumn.CqlType));
 
                 first = false;
@@ -145,7 +188,7 @@ namespace CqlSharp.Linq.Mutations
             foreach (var column in Accessor.Columns)
             {
                 //skip null values
-                if (column.ReadFunction(trackedEntity.Object) == null)
+                if (column.ReadFunction(trackedEntity.Entity) == null)
                     continue;
 
                 if (!first)
@@ -165,7 +208,7 @@ namespace CqlSharp.Linq.Mutations
             foreach (var column in Accessor.Columns)
             {
                 //skip null values
-                var value = column.ReadFunction(trackedEntity.Object);
+                var value = column.ReadFunction(trackedEntity.Entity);
                 if (value == null)
                     continue;
 
