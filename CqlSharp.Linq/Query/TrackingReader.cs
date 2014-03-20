@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 
 namespace CqlSharp.Linq.Query
@@ -44,22 +45,22 @@ namespace CqlSharp.Linq.Query
             var table = _context.GetTable<TEntity>();
             var tracker = _context.ChangeTracker.GetTableChangeTracker<TEntity>();
 
-            using (var connection = new CqlConnection(_context.ConnectionString))
-            {
+            var connection = _context.Database.Connection;
+            if (connection.State == ConnectionState.Closed)
                 connection.Open();
 
-                if (_context.Log != null) _context.Log(_cql);
+            _context.Database.LogQuery(_cql);
 
-                var command = new CqlCommand(connection, _cql);
-                using (var reader = command.ExecuteReader())
+            var command = new CqlCommand(connection, _cql);
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        var value = _projector(reader);
-                        yield return tracker.GetOrAttach(value);
-                    }
+                    var value = _projector(reader);
+                    yield return tracker.GetOrAttach(value);
                 }
             }
+
         }
 
         /// <summary>

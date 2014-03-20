@@ -18,6 +18,7 @@ using CqlSharp.Linq.Query;
 using CqlSharp.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -136,20 +137,19 @@ namespace CqlSharp.Linq
             TEntity entity;
             if (!ChangeTracker.TryGetEntityByKey(key, out entity))
             {
-                using (var connection = new CqlConnection(_context.ConnectionString))
-                {
+                var connection = _context.Database.Connection;
+                if (connection.State == ConnectionState.Closed)
                     connection.Open();
 
-                    var query = CqlBuilder<TEntity>.GetSelectQuery(this, key);
-                    if (_context.Log != null) _context.Log(query);
+                var query = CqlBuilder<TEntity>.GetSelectQuery(this, key);
+                _context.Database.LogQuery(query);
 
-                    var command = new CqlCommand(connection, query);
-                    using (var reader = command.ExecuteReader<TEntity>())
+                var command = new CqlCommand(connection, query);
+                using (var reader = command.ExecuteReader<TEntity>())
+                {
+                    if (reader.Read())
                     {
-                        if (reader.Read())
-                        {
-                            entity = ChangeTracker.GetOrAttach(reader.Current);
-                        }
+                        entity = ChangeTracker.GetOrAttach(reader.Current);
                     }
                 }
             }
@@ -170,20 +170,19 @@ namespace CqlSharp.Linq
             TEntity entity;
             if (!ChangeTracker.TryGetEntityByKey(key, out entity))
             {
-                using (var connection = new CqlConnection(_context.ConnectionString))
-                {
+                var connection = _context.Database.Connection;
+                if (connection.State == ConnectionState.Closed)
                     await connection.OpenAsync();
 
-                    var query = CqlBuilder<TEntity>.GetSelectQuery(this, key);
-                    if (_context.Log != null) _context.Log(query);
+                var query = CqlBuilder<TEntity>.GetSelectQuery(this, key);
+                _context.Database.LogQuery(query);
 
-                    var command = new CqlCommand(connection, query);
-                    using (var reader = await command.ExecuteReaderAsync<TEntity>())
+                var command = new CqlCommand(connection, query);
+                using (var reader = await command.ExecuteReaderAsync<TEntity>())
+                {
+                    if (await reader.ReadAsync())
                     {
-                        if (await reader.ReadAsync())
-                        {
-                            entity = ChangeTracker.GetOrAttach(reader.Current);
-                        }
+                        entity = ChangeTracker.GetOrAttach(reader.Current);
                     }
                 }
             }
@@ -218,9 +217,15 @@ namespace CqlSharp.Linq
                 if (!accessor.IsTableSet)
                     throw new CqlLinqException("Name of the Table can not be derived for entityType " + accessor.Type.FullName);
 
+                //if table metadata contains a keyspace, use it
                 if (accessor.IsKeySpaceSet)
                     return accessor.Keyspace + "." + accessor.Table;
 
+                //if context database has defined a database, use it
+                if (!string.IsNullOrWhiteSpace(_context.Database.Keyspace))
+                    return _context.Database.Keyspace + "." + accessor.Table;
+
+                //return the simple table name
                 return accessor.Table;
             }
         }

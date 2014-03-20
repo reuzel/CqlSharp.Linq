@@ -1,6 +1,6 @@
+using CqlSharp.Linq.Expressions;
 using System;
 using System.Reflection;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Query
 {
@@ -67,8 +67,7 @@ namespace CqlSharp.Linq.Query
             Type projectionType = Projector.Method.ReturnType;
 
             //log the query
-            if (context.Log != null)
-                context.Log(Cql);
+            context.Database.LogQuery(Cql);
 
 #if DEBUG
             //return default values of execution is to be skipped
@@ -86,18 +85,18 @@ namespace CqlSharp.Linq.Query
             IProjectionReader reader;
             if (CanTrackChanges)
             {
-               reader = (IProjectionReader) Activator.CreateInstance(
-                   typeof(TrackingReader<>).MakeGenericType(projectionType),
-                   BindingFlags.Instance | BindingFlags.Public, null,
-                   new object[] { context, Cql, Projector },
-                   null);
+                reader = (IProjectionReader)Activator.CreateInstance(
+                    typeof(TrackingReader<>).MakeGenericType(projectionType),
+                    BindingFlags.Instance | BindingFlags.Public, null,
+                    new object[] { context, Cql, Projector },
+                    null);
             }
             else
             {
-                reader = (IProjectionReader) Activator.CreateInstance(
-                    typeof (ProjectionReader<>).MakeGenericType(projectionType),
+                reader = (IProjectionReader)Activator.CreateInstance(
+                    typeof(ProjectionReader<>).MakeGenericType(projectionType),
                     BindingFlags.Instance | BindingFlags.Public, null,
-                    new object[] {context, Cql, Projector},
+                    new object[] { context, Cql, Projector },
                     null);
             }
 

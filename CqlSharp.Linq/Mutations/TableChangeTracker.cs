@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -90,24 +91,22 @@ namespace CqlSharp.Linq.Mutations
         /// <param name="consistency"> The consistency. </param>
         public void SaveChanges(CqlConsistency consistency)
         {
-            using (var connection = new CqlConnection(_table.Context.ConnectionString))
+            var connection = _table.Context.Database.Connection;
+            if (connection.State == ConnectionState.Closed) connection.Open();
+
+            foreach (var trackedObject in _trackedEntities.Values)
             {
-                connection.Open();
-
-                foreach (var trackedObject in _trackedEntities.Values)
+                if (trackedObject.State != EntityState.Unchanged)
                 {
-                    if (trackedObject.State != EntityState.Unchanged)
-                    {
-                        var cql = trackedObject.GetDmlStatement();
-                        if (_table.Context.Log != null) _table.Context.Log(cql);
+                    var cql = trackedObject.GetDmlStatement();
+                    _table.Context.Database.LogQuery(cql);
 
-                        var command = new CqlCommand(connection, cql, consistency);
-                        command.PartitionKey.Set(trackedObject.Entity);
-                        command.ExecuteNonQueryAsync();
+                    var command = new CqlCommand(connection, cql, consistency);
+                    command.PartitionKey.Set(trackedObject.Entity);
+                    command.ExecuteNonQueryAsync();
 
-                        trackedObject.SetOriginalValues(trackedObject.Entity);
-                        trackedObject.State = EntityState.Unchanged;
-                    }
+                    trackedObject.SetOriginalValues(trackedObject.Entity);
+                    trackedObject.State = EntityState.Unchanged;
                 }
             }
         }
@@ -121,25 +120,25 @@ namespace CqlSharp.Linq.Mutations
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            using (var connection = new CqlConnection(_table.Context.ConnectionString))
-            {
+            var connection = _table.Context.Database.Connection;
+
+            if (connection.State == ConnectionState.Closed)
                 await connection.OpenAsync(cancellationToken);
 
-                foreach (var trackedObject in _trackedEntities.Values)
+            foreach (var trackedObject in _trackedEntities.Values)
+            {
+                if (trackedObject.State != EntityState.Unchanged)
                 {
-                    if (trackedObject.State != EntityState.Unchanged)
-                    {
-                        var cql = trackedObject.GetDmlStatement();
-                        if (_table.Context.Log != null) _table.Context.Log(cql);
+                    var cql = trackedObject.GetDmlStatement();
+                    _table.Context.Database.LogQuery(cql);
 
-                        var command = new CqlCommand(connection, cql, consistency);
-                        command.PartitionKey.Set(trackedObject.Entity);
+                    var command = new CqlCommand(connection, cql, consistency);
+                    command.PartitionKey.Set(trackedObject.Entity);
 
-                        await command.ExecuteNonQueryAsync(cancellationToken);
+                    await command.ExecuteNonQueryAsync(cancellationToken);
 
-                        trackedObject.SetOriginalValues(trackedObject.Entity);
-                        trackedObject.State = EntityState.Unchanged;
-                    }
+                    trackedObject.SetOriginalValues(trackedObject.Entity);
+                    trackedObject.State = EntityState.Unchanged;
                 }
             }
         }

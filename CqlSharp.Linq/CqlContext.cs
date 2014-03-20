@@ -28,7 +28,8 @@ namespace CqlSharp.Linq
     /// </summary>
     public abstract class CqlContext : IDisposable
     {
-        private string _connectionString;
+
+        private readonly CqlDatabase _database;
 
         /// <summary>
         ///   The list of tables known to this context
@@ -51,6 +52,8 @@ namespace CqlSharp.Linq
 #if DEBUG
             SkipExecute = false;
 #endif
+            _database = new CqlDatabase(this);
+
             _tables = new ConcurrentDictionary<Type, ICqlTable>();
             ChangeTracker = new ChangeTracker(this);
             CqlQueryProvider = new CqlQueryProvider(this);
@@ -67,31 +70,21 @@ namespace CqlSharp.Linq
         protected CqlContext(string connectionString, bool initializeTables = true)
             : this(initializeTables)
         {
-            _connectionString = connectionString;
+            _database.ConnectionString = connectionString;
         }
 
         /// <summary>
-        ///   Gets the connection string.
+        /// Gets the database underlying this context
         /// </summary>
-        /// <value> The connection string. </value>
-        public string ConnectionString
+        /// <value>
+        /// The database.
+        /// </value>
+        public CqlDatabase Database
         {
-            get
-            {
-                if (_connectionString == null)
-                    _connectionString = GetType().Name;
-
-                return _connectionString;
+            get { return _database; }
             }
 
-            set { _connectionString = value; }
-        }
 
-        /// <summary>
-        ///   Gets or sets the log where executed CQL queries are written to
-        /// </summary>
-        /// <value> The log. </value>
-        public Action<string> Log { get; set; }
 
 #if DEBUG
         /// <summary>
@@ -109,6 +102,7 @@ namespace CqlSharp.Linq
         /// <filterpriority>2</filterpriority>
         public void Dispose()
         {
+            _database.Dispose();
         }
 
         #endregion
@@ -180,7 +174,7 @@ namespace CqlSharp.Linq
         /// </summary>
         /// <param name="cancellationToken">the cancellation token </param>
         public Task SaveChangesAsync(CancellationToken cancellationToken)
-        {
+            {
             return SaveChangesAsync(CqlConsistency.One, cancellationToken);
         }
 

@@ -17,6 +17,7 @@ using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 
 namespace CqlSharp.Linq.Mutations
 {
@@ -258,28 +259,27 @@ namespace CqlSharp.Linq.Mutations
         /// </summary>
         public void Reload()
         {
-            using (var connection = new CqlConnection(Table.Context.ConnectionString))
-            {
+            var connection = Table.Context.Database.Connection;
+            if (connection.State == ConnectionState.Closed)
                 connection.Open();
 
-                var cql = CqlBuilder<TEntity>.GetSelectQuery(Table, Key);
-                if (Table.Context.Log != null) Table.Context.Log(cql);
+            var cql = CqlBuilder<TEntity>.GetSelectQuery(Table, Key);
+            Table.Context.Database.LogQuery(cql);
 
-                var command = new CqlCommand(connection, cql);
+            var command = new CqlCommand(connection, cql);
 
-                using (var reader = command.ExecuteReader<TEntity>())
+            using (var reader = command.ExecuteReader<TEntity>())
+            {
+                if (reader.Read())
                 {
-                    if (reader.Read())
-                    {
-                        var row = reader.Current;
-                        SetOriginalValues(row);
-                        SetObjectValues(row);
-                        State = EntityState.Unchanged;
-                    }
-                    else
-                    {
-                        State = EntityState.Detached;
-                    }
+                    var row = reader.Current;
+                    SetOriginalValues(row);
+                    SetObjectValues(row);
+                    State = EntityState.Unchanged;
+                }
+                else
+                {
+                    State = EntityState.Detached;
                 }
             }
         }
