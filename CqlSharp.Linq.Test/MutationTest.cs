@@ -20,9 +20,57 @@ namespace CqlSharp.Linq.Test
     [TestClass]
     public class MutationTest
     {
+
         [TestMethod]
-        public void TestProxy()
+        public void AddTwice()
         {
+            using (var context = new MyContext())
+            {
+                var value = new MyValue { Id = 1, Value = "1" };
+                context.Values.Add(value);
+
+                Assert.IsFalse(context.Values.Add(value));
+            }
+        }
+
+        [TestMethod]
+        public void AddWithExistingKey()
+        {
+            using (var context = new MyContext())
+            {
+                var value = new MyValue { Id = 1, Value = "1" };
+                context.Values.Add(value);
+
+                var value2 = new MyValue { Id = 1, Value = "2" };
+                Assert.IsFalse(context.Values.Add(value2));
+            }
+        }
+
+        [TestMethod]
+        public void AddThenAttach()
+        {
+            using (var context = new MyContext())
+            {
+                var value = new MyValue { Id = 1, Value = "1" };
+                context.Values.Add(value);
+
+                Assert.IsFalse(context.Values.Attach(value));
+            }
+        }
+
+        [TestMethod]
+        public void AttachDetach()
+        {
+            using (var context = new MyContext())
+            {
+                var value = new MyValue { Id = 1, Value = "1" };
+                Assert.IsTrue(context.Values.Attach(value));
+                Assert.IsFalse(context.Values.Attach(value));
+                Assert.IsTrue(context.Values.Detach(value));
+                Assert.IsFalse(context.Values.Detach(value));
+
+                Assert.IsFalse(context.ChangeTracker.HasChanges());
+            }
         }
     }
 }
