@@ -29,7 +29,9 @@ namespace CqlSharp.Linq.Expressions
                 return asReadOnly;
             }
 
-            var list = collection==null ? new List<TItem>() : collection as IList<TItem> ?? new List<TItem>(collection);
+            var list = collection == null
+                           ? new List<TItem>()
+                           : collection as IList<TItem> ?? new List<TItem>(collection);
 
             return new ReadOnlyCollection<TItem>(list);
         }
@@ -53,9 +55,10 @@ namespace CqlSharp.Linq.Expressions
         /// </summary>
         /// <param name="visitor"> The visitor. </param>
         /// <param name="expressions"> The expressions. </param>
-        /// <param name="changed">true if the collection is changed, false if visits did not return in any change </param>
-        /// <returns>a collection of visited expressions, or the original collection if it did not change </returns>
-        public static IEnumerable<T> VisitAll<T>(this IEnumerable<T> expressions, ExpressionVisitor visitor, out bool changed) where T : Expression
+        /// <param name="changed"> true if the collection is changed, false if visits did not return in any change </param>
+        /// <returns> a collection of visited expressions, or the original collection if it did not change </returns>
+        public static IEnumerable<T> VisitAll<T>(this IEnumerable<T> expressions, ExpressionVisitor visitor,
+                                                 out bool changed) where T : Expression
         {
             if (expressions == null)
             {
@@ -67,13 +70,12 @@ namespace CqlSharp.Linq.Expressions
             var visited = new List<T>();
             foreach (T expr in expressions)
             {
-                var v = (T)visitor.Visit(expr);
+                var v = (T) visitor.Visit(expr);
                 visited.Add(v);
                 changed |= v != expr;
             }
 
             return changed ? visited : expressions;
-
         }
 
         /// <summary>
@@ -81,9 +83,10 @@ namespace CqlSharp.Linq.Expressions
         /// </summary>
         /// <param name="visitor"> The visitor. </param>
         /// <param name="expressions"> The expressions. </param>
-        /// <param name="changed">true if the collection is changed, false if visits did not return in any change </param>
-        /// <returns>a collection of visited expressions, or the original collection if it did not change </returns>
-        public static IDictionary<TKey, TValue> VisitAll<TKey, TValue>(this IDictionary<TKey, TValue> expressions, ExpressionVisitor visitor, out bool changed)
+        /// <param name="changed"> true if the collection is changed, false if visits did not return in any change </param>
+        /// <returns> a collection of visited expressions, or the original collection if it did not change </returns>
+        public static IDictionary<TKey, TValue> VisitAll<TKey, TValue>(this IDictionary<TKey, TValue> expressions,
+                                                                       ExpressionVisitor visitor, out bool changed)
             where TKey : Expression
             where TValue : Expression
         {
@@ -97,8 +100,8 @@ namespace CqlSharp.Linq.Expressions
             var visited = new Dictionary<TKey, TValue>();
             foreach (var kvp in expressions)
             {
-                var vKey = (TKey)visitor.Visit(kvp.Key);
-                var vValue = (TValue)visitor.Visit(kvp.Value);
+                var vKey = (TKey) visitor.Visit(kvp.Key);
+                var vValue = (TValue) visitor.Visit(kvp.Value);
 
                 visited.Add(vKey, vValue);
                 changed = changed || (vKey != kvp.Key) || (vValue != kvp.Value);
@@ -106,7 +109,5 @@ namespace CqlSharp.Linq.Expressions
 
             return changed ? visited : expressions;
         }
-
-
     }
 }

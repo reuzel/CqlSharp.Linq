@@ -43,7 +43,7 @@ namespace CqlSharp.Linq.Expressions
 
         public SelectorExpression(MethodInfo function, IEnumerable<SelectorExpression> arguments)
         {
-            if (function.DeclaringType != typeof(CqlFunctions))
+            if (function.DeclaringType != typeof (CqlFunctions))
                 throw new ArgumentException("function must be a valid Cql Function");
 
             _function = function;
@@ -61,7 +61,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType)_selectorType; }
+            get { return (ExpressionType) _selectorType; }
         }
 
         public string Identifier

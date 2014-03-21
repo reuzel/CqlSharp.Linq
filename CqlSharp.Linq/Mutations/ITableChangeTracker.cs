@@ -14,8 +14,6 @@
 // limitations under the License.
 
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CqlSharp.Linq.Mutations
 {
@@ -26,8 +24,8 @@ namespace CqlSharp.Linq.Mutations
     {
         bool HasChanges();
         bool DetectChanges();
-        void SaveChanges(CqlConsistency consistency);
-        Task SaveChangesAsync(CqlConsistency consistency, CancellationToken cancellationToken);
+        void EnlistChanges(CqlConnection connection, CqlBatchTransaction transaction, CqlConsistency cqlConsistency);
+        void AcceptAllChanges();
         IEnumerable<ITrackedEntity> Entries();
     }
 }

@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
 using System;
 using System.Linq;
+using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {
@@ -58,8 +58,8 @@ namespace CqlSharp.Linq.Mutations
         bool IEntityKey.IsKeyOf(object entity)
         {
             if (entity == null) return false;
-            if (entity.GetType() != typeof(TEntity)) return false;
-            return IsKeyOf((TEntity)entity);
+            if (entity.GetType() != typeof (TEntity)) return false;
+            return IsKeyOf((TEntity) entity);
         }
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace CqlSharp.Linq.Mutations
         {
             if (obj == null) return false;
             if (!(obj is EntityKey<TEntity>)) return false;
-            return Equals((EntityKey<TEntity>)obj);
+            return Equals((EntityKey<TEntity>) obj);
         }
 
         /// <summary>

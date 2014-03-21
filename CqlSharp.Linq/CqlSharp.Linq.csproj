@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CqlContext.cs" />
+    <Compile Include="CqlContextBatchTransaction.cs" />
     <Compile Include="CqlDatabase.cs" />
     <Compile Include="CqlFunctions.cs" />
     <Compile Include="CqlLinqException.cs" />

@@ -58,7 +58,8 @@ namespace CqlSharp.Linq.Test
         [TestMethod]
         public void SelectIntoNewObject()
         {
-            TestUtils.QueryFunc query = context => context.Values.Select(r => new {Id2 = r.Id, Value2 = r.Value}).ToList();
+            TestUtils.QueryFunc query =
+                context => context.Values.Select(r => new {Id2 = r.Id, Value2 = r.Value}).ToList();
             TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\";");
         }
 
@@ -72,7 +73,8 @@ namespace CqlSharp.Linq.Test
         [TestMethod]
         public void WhereIdInList()
         {
-            TestUtils.QueryFunc query = context => context.Values.Where(r => new List<int> {1, 2, 3, 4}.Contains(r.Id)).ToList();
+            TestUtils.QueryFunc query =
+                context => context.Values.Where(r => new List<int> {1, 2, 3, 4}.Contains(r.Id)).ToList();
             TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE \"id\" IN (1,2,3,4);");
         }
 
@@ -177,7 +179,8 @@ namespace CqlSharp.Linq.Test
         [TestMethod]
         public void SelectThenWhereThenFirst()
         {
-            TestUtils.QueryFunc query = context => context.Values.Select(v => new {Id2 = v.Id}).Where(v2 => v2.Id2 == 2).First();
+            TestUtils.QueryFunc query =
+                context => context.Values.Select(v => new {Id2 = v.Id}).Where(v2 => v2.Id2 == 2).First();
             TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"id\"=2 LIMIT 1;");
         }
 
@@ -281,14 +284,16 @@ namespace CqlSharp.Linq.Test
         [TestMethod]
         public void OrderByThenByDescending()
         {
-            TestUtils.QueryFunc query = context => context.Values.OrderBy(v => v.Id).ThenByDescending(v2 => v2.Value).ToList();
+            TestUtils.QueryFunc query =
+                context => context.Values.OrderBy(v => v.Id).ThenByDescending(v2 => v2.Value).ToList();
             TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" ORDER BY \"id\" ASC,\"value\" DESC;");
         }
 
         [TestMethod]
         public void OrderByThenOrderBy()
         {
-            TestUtils.QueryFunc query = context => context.Values.OrderBy(v => v.Id).OrderByDescending(v2 => v2.Value).ToList();
+            TestUtils.QueryFunc query =
+                context => context.Values.OrderBy(v => v.Id).OrderByDescending(v2 => v2.Value).ToList();
             TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" ORDER BY \"id\" ASC,\"value\" DESC;");
         }
 
@@ -322,12 +327,11 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CqlLinqException))]
+        [ExpectedException(typeof (CqlLinqException))]
         public void SelectTakeThenDistinct()
         {
             TestUtils.QueryFunc query = context => context.Values.Select(v => v.Id).Take(3).Distinct().ToList();
             TestUtils.ExecuteQuery(query, "SELECT DISTINCT \"id\" FROM \"myvalue\" LIMIT 3;");
         }
-       
     }
 }

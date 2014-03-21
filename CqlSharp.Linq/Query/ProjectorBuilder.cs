@@ -25,27 +25,28 @@ namespace CqlSharp.Linq.Query
     internal class ProjectorBuilder : CqlExpressionVisitor
     {
         private static readonly ConstructorInfo TokenConstructor =
-            typeof (CqlToken).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, CallingConventions.HasThis,
+            typeof (CqlToken).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null,
+                                             CallingConventions.HasThis,
                                              new[] {typeof (object)}, null);
 
-        private static readonly PropertyInfo Indexer = typeof(CqlDataReader).GetProperty("Item",
-                                                                                          new[] { typeof(int) });
+        private static readonly PropertyInfo Indexer = typeof (CqlDataReader).GetProperty("Item",
+                                                                                          new[] {typeof (int)});
 
         private ParameterExpression _reader;
 
         public LambdaExpression BuildProjector(Expression expression)
         {
-            _reader = Expression.Parameter(typeof(CqlDataReader), "cqlDataReader");
+            _reader = Expression.Parameter(typeof (CqlDataReader), "cqlDataReader");
             Expression expr = Visit(expression);
             return Expression.Lambda(expr, _reader);
         }
 
         public override Expression VisitSelector(SelectorExpression selector)
         {
-            var value = Expression.MakeIndex(_reader, Indexer, new[] { Expression.Constant(selector.Ordinal) });
+            var value = Expression.MakeIndex(_reader, Indexer, new[] {Expression.Constant(selector.Ordinal)});
 
             //check if it is a token (of which we don't know it's type)
-            if (selector.Type == typeof(CqlToken))
+            if (selector.Type == typeof (CqlToken))
                 return Expression.New(TokenConstructor, value);
 
             //check if it is a value type (and change null values to corresponding default values)

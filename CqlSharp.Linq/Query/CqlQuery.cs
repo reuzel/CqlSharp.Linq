@@ -51,7 +51,7 @@ namespace CqlSharp.Linq.Query
             _expression = expression;
         }
 
-        #region IOrderedQueryable<TEntity> Members
+        #region IOrderedQueryable<TElement> Members
 
         /// <summary>
         ///   Returns an enumerator that iterates through the collection.
@@ -59,7 +59,7 @@ namespace CqlSharp.Linq.Query
         /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
         public IEnumerator<TElement> GetEnumerator()
         {
-            return ((IEnumerable<TElement>)Provider.Execute(_expression)).GetEnumerator();
+            return ((IEnumerable<TElement>) Provider.Execute(_expression)).GetEnumerator();
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace CqlSharp.Linq.Query
         /// <returns> A <see cref="T:System.Type" /> that represents the type of the element(s) that are returned when the expression tree associated with this object is executed. </returns>
         public Type ElementType
         {
-            get { return typeof(TElement); }
+            get { return typeof (TElement); }
         }
 
         /// <summary>

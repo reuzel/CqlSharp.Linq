@@ -26,7 +26,7 @@ namespace CqlSharp.Linq.Query
         public ProjectionExpression UpdateSelect(ProjectionExpression projection, Expression selectExpression)
         {
             //get the lambda expression of the select method
-            var lambda = (LambdaExpression)selectExpression.StripQuotes();
+            var lambda = (LambdaExpression) selectExpression.StripQuotes();
 
             //if the lambda, is the identity lamda, simply return
             if (lambda.IsIdentityLambda())
@@ -61,12 +61,14 @@ namespace CqlSharp.Linq.Query
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             Type classType = node.Method.DeclaringType;
-            if (classType == typeof(CqlFunctions))
+            if (classType == typeof (CqlFunctions))
             {
                 bool changed;
                 var args = node.Arguments.VisitAll(this, out changed);
-                if(args.Any(arg => arg.GetType() != typeof(SelectorExpression)))
-                    throw new CqlLinqException(string.Format("Argument to {0} function is not recognized as a column identifier", node.Method.Name));
+                if (args.Any(arg => arg.GetType() != typeof (SelectorExpression)))
+                    throw new CqlLinqException(
+                        string.Format("Argument to {0} function is not recognized as a column identifier",
+                                      node.Method.Name));
 
                 return new SelectorExpression(node.Method, args.Cast<SelectorExpression>());
             }

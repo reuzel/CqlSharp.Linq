@@ -51,10 +51,11 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("0.31.0.0")]
-[assembly: AssemblyFileVersion("0.31.0.0")]
-[assembly: AssemblyInformationalVersion("0.31.0.0-alpha")]
+[assembly: AssemblyVersion("0.34.0.0")]
+[assembly: AssemblyFileVersion("0.34.0.0")]
+[assembly: AssemblyInformationalVersion("0.34.0.0-alpha")]
 
 #if DEBUG
+
 [assembly: InternalsVisibleTo("CqlSharp.Linq.Test")]
 #endif

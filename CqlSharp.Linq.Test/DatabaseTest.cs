@@ -13,8 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Mutations;
 using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CqlSharp.Linq.Test
@@ -23,7 +25,7 @@ namespace CqlSharp.Linq.Test
     public class DatabaseTest
     {
         private const string ConnectionString =
-            "server=localhost;throttle=256;MaxConnectionIdleTime=3600;loggerfactory=debug;loglevel=query;username=cassandra;password=cassandra;database=linqtest";
+            "server=localhost;throttle=256;MaxConnectionIdleTime=3600;loggerfactory=debug;loglevel=Verbose;username=cassandra;password=cassandra;database=linqtest";
 
         [ClassInitialize]
         public static void Init(TestContext context)
@@ -155,6 +157,7 @@ namespace CqlSharp.Linq.Test
         {
             using (var context = new MyContext(ConnectionString))
             {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
                 var value = context.Values.Find(100);
                 value.Value = "Hallo daar!";
                 context.SaveChanges();
@@ -163,9 +166,125 @@ namespace CqlSharp.Linq.Test
             using (var context = new MyContext(ConnectionString))
             {
                 var value = context.Values.Find(100);
+                Assert.IsNotNull(value);
                 Assert.AreEqual("Hallo daar!", value.Value);
             }
+        }
 
+        [TestMethod]
+        public void UpdateTwiceInSingleTransaction()
+        {
+            using (var context = new MyContext(ConnectionString))
+            using (var transaction = context.Database.BeginTransaction())
+            {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
+
+                var value = context.Values.Find(200);
+                value.Value = "Hallo daar!";
+                context.SaveChanges();
+
+                value.Value = "Oops...";
+                context.SaveChanges();
+
+                transaction.Commit();
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(200);
+                Assert.IsNotNull(value);
+                Assert.AreEqual("Oops...", value.Value);
+            }
+        }
+
+        [TestMethod]
+        public void UpdateTwiceInSingleTransactionAndRollback()
+        {
+            using (var context = new MyContext(ConnectionString))
+            using (var transaction = context.Database.BeginTransaction())
+            {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
+
+                var value = context.Values.Find(300);
+                value.Value = "Hallo daar!";
+                context.SaveChanges();
+
+                value.Value = "Oops...";
+                context.SaveChanges();
+
+                transaction.Rollback();
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(300);
+                Assert.IsNotNull(value);
+                Assert.AreEqual("Hallo 300", value.Value);
+            }
+        }
+
+        [TestMethod]
+        public void UpdateTwiceInTwoTransactions()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
+
+                var value = context.Values.Find(400);
+
+                using (var transaction1 = context.Database.BeginTransaction())
+                {
+                    value.Value = "Hallo daar!";
+                    context.SaveChanges();
+                    transaction1.Commit();
+                }
+
+                using (var transaction2 = context.Database.BeginTransaction())
+                {
+                    transaction2.BatchType = CqlBatchType.Unlogged;
+
+                    value.Value = "Nog een keer";
+                    context.SaveChanges();
+                    transaction2.Commit();
+                }
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(400);
+                Assert.IsNotNull(value);
+                Assert.AreEqual("Nog een keer", value.Value);
+            }
+        }
+
+        [TestMethod]
+        public void UpdateInExternalTransaction()
+        {
+            using (var connection = new CqlConnection(ConnectionString))
+            using (var transaction = connection.BeginTransaction())
+            using (var context = new MyContext(connection, false))
+            {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
+
+                context.Database.UseTransaction(transaction);
+
+                var value = context.Values.Find(500);
+                value.Value = "Hallo daar!";
+                context.SaveChanges();
+
+                var command = new CqlCommand(connection, "update myvalue set value='adjusted' where id=500");
+                command.Transaction = transaction;
+                command.ExecuteNonQuery();
+
+                transaction.Commit();
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(500);
+                Assert.IsNotNull(value);
+                Assert.AreEqual("adjusted", value.Value);
+            }
         }
 
         [TestMethod]
@@ -173,6 +292,7 @@ namespace CqlSharp.Linq.Test
         {
             using (var context = new MyContext(ConnectionString))
             {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
                 var query = context.Values.Where(r => new[] { 201, 202, 203, 204 }.Contains(r.Id)).ToList();
                 query[1].Value = "Zo gaan we weer verder";
                 context.SaveChanges();
@@ -181,7 +301,79 @@ namespace CqlSharp.Linq.Test
             using (var context = new MyContext(ConnectionString))
             {
                 var value = context.Values.Find(202);
+                Assert.IsNotNull(value);
                 Assert.AreEqual("Zo gaan we weer verder", value.Value);
+            }
+        }
+
+        [TestMethod]
+        public void AddNewEntity()
+        {
+            int count = 0;
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.Database.Log = cql =>
+                {
+                    count++;
+                    Debug.WriteLine("EXECUTE QUERY: " + cql);
+                };
+
+                var newValue = new MyValue { Id = 20000, Value = "Hallo 20000" };
+                bool added = context.Values.Add(newValue);
+                Assert.IsTrue(added);
+                context.SaveChanges();
+
+                //try save again (should do nothing)
+                context.SaveChanges();
+                Assert.AreEqual(1, count, "Save again introduces new query!");
+
+                //try find (should do nothing)
+                var entity = context.Values.Find(20000);
+                Assert.AreSame(newValue, entity);
+                Assert.AreEqual(1, count, "Find introduces new query!");
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(20000);
+                Assert.IsNotNull(value);
+                Assert.AreEqual("Hallo 20000", value.Value);
+            }
+        }
+
+        [TestMethod]
+        public void AddAndChangeNewEntity()
+        {
+            int count = 0;
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.Database.Log = cql =>
+                {
+                    count++;
+                    Debug.WriteLine("EXECUTE QUERY: " + cql);
+                };
+
+                var newValue = new MyValue { Id = 30000, Value = "Hallo 30000" };
+                bool added = context.Values.Add(newValue);
+                Assert.IsTrue(added);
+
+                var entry = context.ChangeTracker.Entries<MyValue>().First(mv=>mv.Entity.Id==30000);
+                Assert.AreEqual(EntityState.Added, entry.State);
+                
+                context.SaveChanges();
+
+                Assert.AreEqual(EntityState.Unchanged, entry.State);
+                
+                newValue.Value = "Hallo weer!";
+                context.SaveChanges();
+                Assert.AreEqual(2, count, "Where is my query?");
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(30000);
+                Assert.IsNotNull(value);
+                Assert.AreEqual("Hallo weer!", value.Value);
             }
         }
     }

@@ -23,8 +23,8 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class OrderingExpression : Expression
     {
-        private readonly SelectorExpression _selector;
         private readonly CqlExpressionType _order;
+        private readonly SelectorExpression _selector;
 
         public OrderingExpression(SelectorExpression selector, CqlExpressionType orderType)
         {

@@ -28,7 +28,6 @@ namespace CqlSharp.Linq
     /// </summary>
     public abstract class CqlContext : IDisposable
     {
-
         private readonly CqlDatabase _database;
 
         /// <summary>
@@ -73,17 +72,20 @@ namespace CqlSharp.Linq
             _database.ConnectionString = connectionString;
         }
 
+        protected CqlContext(CqlConnection connection, bool ownsConnection = true, bool initializeTables = true)
+            : this(initializeTables)
+        {
+            _database.SetConnection(connection, ownsConnection);
+        }
+
         /// <summary>
-        /// Gets the database underlying this context
+        ///   Gets the database underlying this context
         /// </summary>
-        /// <value>
-        /// The database.
-        /// </value>
+        /// <value> The database. </value>
         public CqlDatabase Database
         {
             get { return _database; }
-            }
-
+        }
 
 
 #if DEBUG
@@ -144,11 +146,11 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Tries the get table for the given entityType.
+        ///   Tries the get table for the given entityType.
         /// </summary>
-        /// <param name="entityType">The entity type.</param>
-        /// <param name="table">The table.</param>
-        /// <returns></returns>
+        /// <param name="entityType"> The entity type. </param>
+        /// <param name="table"> The table. </param>
+        /// <returns> </returns>
         internal bool TryGetTable(Type entityType, out ICqlTable table)
         {
             return _tables.TryGetValue(entityType, out table);
@@ -160,40 +162,118 @@ namespace CqlSharp.Linq
         /// <value> The mutation tracker. </value>
         public ChangeTracker ChangeTracker { get; private set; }
 
+
+        #region SaveChanges
+
         /// <summary>
-        ///   Saves the changes with the required consistency level.
+        /// Saves the changes.
         /// </summary>
-        /// <param name="consistency"> The consistency level. Defaults to one. </param>
-        public void SaveChanges(CqlConsistency consistency = CqlConsistency.One)
+        public void SaveChanges()
         {
-            ChangeTracker.SaveChanges(consistency);
+            ChangeTracker.SaveChanges(CqlConsistency.One, true);
         }
+
+        /// <summary>
+        /// Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="acceptChangesDuringSave">if set to <c>true</c> [accept changes during save].</param>
+        public void SaveChanges(bool acceptChangesDuringSave)
+        {
+            ChangeTracker.SaveChanges(CqlConsistency.One, acceptChangesDuringSave);
+        }
+
 
         /// <summary>
         ///   Saves the changes with the required consistency level.
         /// </summary>
-        /// <param name="cancellationToken">the cancellation token </param>
-        public Task SaveChangesAsync(CancellationToken cancellationToken)
-            {
-            return SaveChangesAsync(CqlConsistency.One, cancellationToken);
+        /// <param name="consistency"> The consistency level. Defaults to one. </param>
+        public void SaveChanges(CqlConsistency consistency)
+        {
+            ChangeTracker.SaveChanges(consistency, true);
+        }
+
+
+        /// <summary>
+        /// Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="consistency">The consistency level. Defaults to one.</param>
+        /// <param name="acceptChangesDuringSave">if set to <c>true</c> [accept changes during save].</param>
+        public void SaveChanges(CqlConsistency consistency, bool acceptChangesDuringSave)
+        {
+            ChangeTracker.SaveChanges(consistency, acceptChangesDuringSave);
+        }
+
+
+        /// <summary>
+        ///   Saves the changes
+        /// </summary>
+        public Task SaveChangesAsync()
+        {
+            return SaveChangesAsync(CqlConsistency.One, true, CancellationToken.None);
         }
 
         /// <summary>
-        ///   Saves the changes with the required consistency level.
-        /// </summary>
-        /// <param name="consistency"> The consistency level. Defaults to one. </param>
-        public Task SaveChangesAsync(CqlConsistency consistency = CqlConsistency.One)
-        {
-            return SaveChangesAsync(consistency, CancellationToken.None);
-        }
-        /// <summary>
-        ///   Saves the changes with the required consistency level.
+        ///   Saves the changes.
         /// </summary>
         /// <param name="cancellationToken"> the cancellation token </param>
-        /// <param name="consistency"> The consistency level </param>
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            return SaveChangesAsync(CqlConsistency.One, true, cancellationToken);
+        }
+
+        /// <summary>
+        ///   Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="consistency"> The consistency level. Defaults to one. </param>
+        public Task SaveChangesAsync(CqlConsistency consistency)
+        {
+            return SaveChangesAsync(consistency, true, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="consistency">The consistency level. Defaults to one.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         public Task SaveChangesAsync(CqlConsistency consistency, CancellationToken cancellationToken)
         {
-            return ChangeTracker.SaveChangesAsync(consistency, cancellationToken);
+            return SaveChangesAsync(consistency, true, cancellationToken);
+        }
+
+        /// <summary>
+        /// Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="consistency">The consistency level</param>
+        /// <param name="acceptChangesDuringSave">if set to <c>true</c> [accept changes during save].</param>
+        /// <returns></returns>
+        public Task SaveChangesAsync(CqlConsistency consistency, bool acceptChangesDuringSave)
+        {
+            return SaveChangesAsync(consistency, acceptChangesDuringSave, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Saves the changes with the required consistency level.
+        /// </summary>
+        /// <param name="consistency">The consistency level</param>
+        /// <param name="acceptChangesDuringSave">if set to <c>true</c> [accept changes during save].</param>
+        /// <param name="cancellationToken">the cancellation token</param>
+        /// <returns></returns>
+        public Task SaveChangesAsync(CqlConsistency consistency, bool acceptChangesDuringSave,
+                                     CancellationToken cancellationToken)
+        {
+            return ChangeTracker.SaveChangesAsync(consistency, acceptChangesDuringSave, cancellationToken);
+        }
+
+
+        #endregion
+        
+        /// <summary>
+        /// Accepts all changes made to tracked entities, and regards them as unchanged afterwards.
+        /// </summary>
+        public void AcceptAllChanges()
+        {
+            ChangeTracker.AcceptAllChanges();
         }
     }
 }

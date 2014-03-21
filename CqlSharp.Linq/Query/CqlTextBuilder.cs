@@ -99,7 +99,7 @@ namespace CqlSharp.Linq.Query
             base.VisitSelectClause(selectClauseExpression);
 
             string translation;
-            switch ((CqlExpressionType)selectClauseExpression.NodeType)
+            switch ((CqlExpressionType) selectClauseExpression.NodeType)
             {
                 case CqlExpressionType.SelectAll:
                     translation = "*";
@@ -127,7 +127,7 @@ namespace CqlSharp.Linq.Query
 
             string value;
 
-            switch ((CqlExpressionType)selector.NodeType)
+            switch ((CqlExpressionType) selector.NodeType)
             {
                 case CqlExpressionType.IdentifierSelector:
                     value = "\"" + selector.Identifier.Replace("\"", "\"\"") + "\"";
@@ -157,7 +157,7 @@ namespace CqlSharp.Linq.Query
             var builder = new StringBuilder();
             builder.Append(_translations[relation.Selector]);
 
-            switch ((CqlExpressionType)relation.NodeType)
+            switch ((CqlExpressionType) relation.NodeType)
             {
                 case CqlExpressionType.Equal:
                     builder.Append("=");
@@ -200,7 +200,7 @@ namespace CqlSharp.Linq.Query
 
             var builder = new StringBuilder();
 
-            switch ((CqlExpressionType)term.NodeType)
+            switch ((CqlExpressionType) term.NodeType)
             {
                 case CqlExpressionType.Variable:
                     builder.Append("?");
@@ -231,7 +231,10 @@ namespace CqlSharp.Linq.Query
                 case CqlExpressionType.Map:
                     {
                         builder.Append("{");
-                        var elements = term.DictionaryTerms.Select(pair => string.Format("{0}:{1}", _translations[pair.Key], _translations[pair.Value])).ToList();
+                        var elements =
+                            term.DictionaryTerms.Select(
+                                pair => string.Format("{0}:{1}", _translations[pair.Key], _translations[pair.Value])).
+                                ToList();
                         builder.Append(string.Join(",", elements));
                         builder.Append("}");
                     }
@@ -253,12 +256,11 @@ namespace CqlSharp.Linq.Query
         }
 
 
-
         public override Expression VisitOrdering(OrderingExpression ordering)
         {
             string value;
 
-            switch ((CqlExpressionType)ordering.NodeType)
+            switch ((CqlExpressionType) ordering.NodeType)
             {
                 case CqlExpressionType.OrderDescending:
                     value = _translations[ordering.Selector] + " DESC";

@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
 using System;
 using System.Collections.Generic;
+using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq
 {
@@ -43,11 +43,9 @@ namespace CqlSharp.Linq
         Type Type { get; }
 
         /// <summary>
-        /// Gets the context this table instance belongs to.
+        ///   Gets the context this table instance belongs to.
         /// </summary>
-        /// <value>
-        /// The context.
-        /// </value>
+        /// <value> The context. </value>
         CqlContext Context { get; }
     }
 }

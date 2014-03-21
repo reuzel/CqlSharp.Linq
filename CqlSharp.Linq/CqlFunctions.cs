@@ -18,15 +18,15 @@ using System;
 namespace CqlSharp.Linq
 {
     /// <summary>
-    /// Provides CQL functions that can used as part of a CQL query expression
+    ///   Provides CQL functions that can used as part of a CQL query expression
     /// </summary>
     public static class CqlFunctions
     {
         /// <summary>
-        /// Gets the Time-To-Live of a specific identifier
+        ///   Gets the Time-To-Live of a specific identifier
         /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        /// <returns></returns>
+        /// <param name="identifier"> The identifier. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static int TTL(object identifier)
         {
@@ -34,10 +34,10 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets the time a specific identifier was written to the database
+        ///   Gets the time a specific identifier was written to the database
         /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        /// <returns></returns>
+        /// <param name="identifier"> The identifier. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static DateTime WriteTime(object identifier)
         {
@@ -45,9 +45,9 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets the (partition) token value of the given identifier
+        ///   Gets the (partition) token value of the given identifier
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static CqlToken Token<T1>(T1 identifier)
         {
@@ -55,9 +55,9 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets the (partition) token value of the given identifier
+        ///   Gets the (partition) token value of the given identifier
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static CqlToken Token<T1, T2>(T1 identifier, T2 identifier2)
         {
@@ -65,9 +65,9 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets the (partition) token value of the given identifier
+        ///   Gets the (partition) token value of the given identifier
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static CqlToken Token<T1, T2, T3>(T1 identifier, T2 identifier2, T3 identifier3)
         {
@@ -75,9 +75,9 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets the (partition) token value of the given identifier
+        ///   Gets the (partition) token value of the given identifier
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static CqlToken Token<T1, T2, T3, T4>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4)
         {
@@ -85,39 +85,43 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets the (partition) token value of the given identifier
+        ///   Gets the (partition) token value of the given identifier
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
-        public static CqlToken Token<T1, T2, T3, T4, T5>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4, T5 identifier5)
+        public static CqlToken Token<T1, T2, T3, T4, T5>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4,
+                                                         T5 identifier5)
         {
             throw new CqlLinqException("This function can only be used as part of a Linq expression");
         }
 
         /// <summary>
-        /// Gets the (partition) token value of the given identifier
+        ///   Gets the (partition) token value of the given identifier
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
-        public static CqlToken Token<T1, T2, T3, T4, T5, T6>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4, T5 identifier5, T6 identifier6)
+        public static CqlToken Token<T1, T2, T3, T4, T5, T6>(T1 identifier, T2 identifier2, T3 identifier3,
+                                                             T4 identifier4, T5 identifier5, T6 identifier6)
         {
             throw new CqlLinqException("This function can only be used as part of a Linq expression");
         }
 
         /// <summary>
-        /// Gets the (partition) token value of the given identifier
+        ///   Gets the (partition) token value of the given identifier
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
-        public static CqlToken Token<T1, T2, T3, T4, T5, T6, T7>(T1 identifier, T2 identifier2, T3 identifier3, T4 identifier4, T5 identifier5, T6 identifier6, T7 identifier7)
+        public static CqlToken Token<T1, T2, T3, T4, T5, T6, T7>(T1 identifier, T2 identifier2, T3 identifier3,
+                                                                 T4 identifier4, T5 identifier5, T6 identifier6,
+                                                                 T7 identifier7)
         {
             throw new CqlLinqException("This function can only be used as part of a Linq expression");
         }
 
         /// <summary>
-        /// Gets a TimeUuid representing the current date and time
+        ///   Gets a TimeUuid representing the current date and time
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static Guid Now()
         {
@@ -125,11 +129,11 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets a (unofficial) time UUID, that represents the minimal uuid value of a certain date time. Useful in
-        /// time comparisons based on time uuids.
+        ///   Gets a (unofficial) time UUID, that represents the minimal uuid value of a certain date time. Useful in
+        ///   time comparisons based on time uuids.
         /// </summary>
-        /// <param name="time">The time.</param>
-        /// <returns></returns>
+        /// <param name="time"> The time. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static Guid MinTimeUuid(DateTime time)
         {
@@ -137,11 +141,11 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets a (unofficial) time UUID, that represents the maximum uuid value of a certain date time. Useful in
-        /// time comparisons based on time uuids.
+        ///   Gets a (unofficial) time UUID, that represents the maximum uuid value of a certain date time. Useful in
+        ///   time comparisons based on time uuids.
         /// </summary>
-        /// <param name="time">The time.</param>
-        /// <returns></returns>
+        /// <param name="time"> The time. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static Guid MaxTimeUuid(DateTime time)
         {
@@ -149,10 +153,10 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets the date and time corresponding the a time uuid.
+        ///   Gets the date and time corresponding the a time uuid.
         /// </summary>
-        /// <param name="timeGuid">The time unique identifier.</param>
-        /// <returns></returns>
+        /// <param name="timeGuid"> The time unique identifier. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static DateTime DateOf(Guid timeGuid)
         {
@@ -160,10 +164,10 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Get the unix time stamp value corresponding to the given time uuid.
+        ///   Get the unix time stamp value corresponding to the given time uuid.
         /// </summary>
-        /// <param name="timeGuid">The time unique identifier.</param>
-        /// <returns></returns>
+        /// <param name="timeGuid"> The time unique identifier. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">This function can only be used as part of a Linq expression</exception>
         public static long UnixTimeStampOf(Guid timeGuid)
         {

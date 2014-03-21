@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
-using System.Reflection;
+using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq
 {
@@ -39,15 +38,15 @@ namespace CqlSharp.Linq
 
         public static Type FindIEnumerable(Type seqType)
         {
-            if (seqType == null || seqType == typeof(string))
+            if (seqType == null || seqType == typeof (string))
                 return null;
             if (seqType.IsArray)
-                return typeof(IEnumerable<>).MakeGenericType(seqType.GetElementType());
+                return typeof (IEnumerable<>).MakeGenericType(seqType.GetElementType());
             if (seqType.IsGenericType)
             {
                 foreach (Type arg in seqType.GetGenericArguments())
                 {
-                    Type ienum = typeof(IEnumerable<>).MakeGenericType(arg);
+                    Type ienum = typeof (IEnumerable<>).MakeGenericType(arg);
                     if (ienum.IsAssignableFrom(seqType))
                     {
                         return ienum;
@@ -63,7 +62,7 @@ namespace CqlSharp.Linq
                     if (ienum != null) return ienum;
                 }
             }
-            if (seqType.BaseType != null && seqType.BaseType != typeof(object))
+            if (seqType.BaseType != null && seqType.BaseType != typeof (object))
             {
                 return FindIEnumerable(seqType.BaseType);
             }
@@ -128,11 +127,11 @@ namespace CqlSharp.Linq
 
 
         /// <summary>
-        /// Clones the specified entity.
+        ///   Clones the specified entity.
         /// </summary>
-        /// <param name="entity">The entity.</param>
-        /// <param name="keyOnly">clones the key values only</param>
-        /// <returns></returns>
+        /// <param name="entity"> The entity. </param>
+        /// <param name="keyOnly"> clones the key values only </param>
+        /// <returns> </returns>
         internal static TEntity Clone<TEntity>(this TEntity entity, bool keyOnly = false)
         {
             var clone = Activator.CreateInstance<TEntity>();
@@ -141,12 +140,12 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Copies the values from one entity to another
+        ///   Copies the values from one entity to another
         /// </summary>
-        /// <param name="source">The entity.</param>
-        /// <param name="destination">the entity </param>
-        /// <param name="keyOnly">clones the key values only</param>
-        /// <returns></returns>
+        /// <param name="source"> The entity. </param>
+        /// <param name="destination"> the entity </param>
+        /// <param name="keyOnly"> clones the key values only </param>
+        /// <returns> </returns>
         internal static void CopyTo<TEntity>(this TEntity source, TEntity destination, bool keyOnly = false)
         {
             if (source == null)
@@ -181,12 +180,13 @@ namespace CqlSharp.Linq
                 column.WriteFunction(destination, value);
             }
         }
+
         /// <summary>
-        /// Translates the object to its Cql string representation.
+        ///   Translates the object to its Cql string representation.
         /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="type">The type.</param>
-        /// <returns></returns>
+        /// <param name="value"> The value. </param>
+        /// <param name="type"> The type. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlLinqException">Unable to translate term to a string representation</exception>
         public static string ToStringValue(object value, CqlType type)
         {
@@ -195,11 +195,11 @@ namespace CqlSharp.Linq
                 case CqlType.Text:
                 case CqlType.Varchar:
                 case CqlType.Ascii:
-                    var str = (string)value;
+                    var str = (string) value;
                     return "'" + str.Replace("'", "''") + "'";
 
                 case CqlType.Boolean:
-                    return ((bool)value) ? "true" : "false";
+                    return ((bool) value) ? "true" : "false";
 
                 case CqlType.Decimal:
                 case CqlType.Double:
@@ -214,17 +214,17 @@ namespace CqlSharp.Linq
 
                 case CqlType.Timeuuid:
                 case CqlType.Uuid:
-                    return ((Guid)value).ToString("D");
+                    return ((Guid) value).ToString("D");
 
                 case CqlType.Varint:
-                    return ((BigInteger)value).ToString("D");
+                    return ((BigInteger) value).ToString("D");
 
                 case CqlType.Timestamp:
-                    long timestamp = ((DateTime)value).ToTimestamp();
+                    long timestamp = ((DateTime) value).ToTimestamp();
                     return string.Format("{0:D}", timestamp);
 
                 case CqlType.Blob:
-                    return ((byte[])value).ToHex("0x");
+                    return ((byte[]) value).ToHex("0x");
 
                 default:
                     throw new CqlLinqException("Unable to translate term to a string representation");

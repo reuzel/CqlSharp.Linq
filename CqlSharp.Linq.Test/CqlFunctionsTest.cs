@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Linq.Test
 {
@@ -47,18 +47,18 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CqlLinqException))]
+        [ExpectedException(typeof (CqlLinqException))]
         public void CompareWithoutATerm()
         {
             TestUtils.QueryFunc query =
                 context =>
-                context.Values.Select(v => new { v.Id, Token = CqlFunctions.Token(v.Id) }).Where(
+                context.Values.Select(v => new {v.Id, Token = CqlFunctions.Token(v.Id)}).Where(
                     tid => tid.Token < CqlFunctions.Token(tid.Id)).ToList();
             TestUtils.ExecuteQuery(query, "illegal");
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CqlLinqException))]
+        [ExpectedException(typeof (CqlLinqException))]
         public void TTLInWhereClause()
         {
             TestUtils.QueryFunc query =

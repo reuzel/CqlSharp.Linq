@@ -24,7 +24,7 @@ namespace CqlSharp.Linq.Query
     /// <summary>
     ///   Executes a CQL query and transforms the results into object using a projector
     /// </summary>
-    /// <typeparam name="TElement"> type of elements returned from a query</typeparam>
+    /// <typeparam name="TElement"> type of elements returned from a query </typeparam>
     internal class ProjectionReader<TElement> : IEnumerable<TElement>, IProjectionReader
     {
         private readonly CqlContext _context;
@@ -32,16 +32,16 @@ namespace CqlSharp.Linq.Query
         private readonly Func<CqlDataReader, TElement> _projector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
+        ///   Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
         /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="cql">The CQL.</param>
-        /// <param name="projector">The projector.</param>
+        /// <param name="context"> The context. </param>
+        /// <param name="cql"> The CQL. </param>
+        /// <param name="projector"> The projector. </param>
         /// <exception cref="System.ArgumentNullException">context
-        /// or
-        /// cql
-        /// or
-        /// projector</exception>
+        ///   or
+        ///   cql
+        ///   or
+        ///   projector</exception>
         public ProjectionReader(CqlContext context, string cql, Func<CqlDataReader, TElement> projector)
         {
             if (context == null) throw new ArgumentNullException("context");
@@ -53,7 +53,7 @@ namespace CqlSharp.Linq.Query
             _projector = projector;
         }
 
-        #region IEnumerable<T> Members
+        #region IEnumerable<TElement> Members
 
         /// <summary>
         ///   Returns an enumerator that iterates through the collection.
@@ -66,6 +66,7 @@ namespace CqlSharp.Linq.Query
             if (connection.State == ConnectionState.Closed)
                 connection.Open();
 
+            //log query
             _context.Database.LogQuery(_cql);
 
             var command = new CqlCommand(connection, _cql);
@@ -75,7 +76,6 @@ namespace CqlSharp.Linq.Query
 
             using (var reader = command.ExecuteReader())
             {
-
                 while (reader.Read())
                 {
                     yield return _projector(reader);
@@ -94,15 +94,17 @@ namespace CqlSharp.Linq.Query
 
         #endregion
 
+        #region IProjectionReader Members
+
         /// <summary>
-        /// Returns an enumerator that iterates through the collection, and returns the result as objects
+        ///   Returns an enumerator that iterates through the collection, and returns the result as objects
         /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection.
-        /// </returns>
+        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
         public IEnumerable<object> AsObjectEnumerable()
         {
-            return this.Select(elem => (object)elem);
+            return this.Select(elem => (object) elem);
         }
+
+        #endregion
     }
 }

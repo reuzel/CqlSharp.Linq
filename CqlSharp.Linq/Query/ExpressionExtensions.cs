@@ -28,7 +28,7 @@ namespace CqlSharp.Linq.Query
         {
             while (e.NodeType == ExpressionType.Quote)
             {
-                e = ((UnaryExpression)e).Operand;
+                e = ((UnaryExpression) e).Operand;
             }
             return e;
         }
@@ -46,9 +46,9 @@ namespace CqlSharp.Linq.Query
         public static bool IsTrue(this Expression e)
         {
             var constant = e as ConstantExpression;
-            if (constant != null && constant.Type == typeof(bool))
+            if (constant != null && constant.Type == typeof (bool))
             {
-                return (bool)constant.Value;
+                return (bool) constant.Value;
             }
             return false;
         }
@@ -61,9 +61,9 @@ namespace CqlSharp.Linq.Query
             if (constant != null)
             {
                 //reduce inner array to its elements
-                if (constant.Type.Implements(typeof(IEnumerable)))
+                if (constant.Type.Implements(typeof (IEnumerable)))
                 {
-                    foreach (var val in (IEnumerable)constant.Value)
+                    foreach (var val in (IEnumerable) constant.Value)
                     {
                         expressions.Add(Expression.Constant(val));
                     }
@@ -71,14 +71,14 @@ namespace CqlSharp.Linq.Query
                 }
 
                 //single constant, return as array
-                return new[] { e };
+                return new[] {e};
             }
 
 
             var nae = e as NewArrayExpression;
             if (nae == null)
             {
-                return new[] { e };
+                return new[] {e};
             }
 
             foreach (var expr in nae.Expressions)

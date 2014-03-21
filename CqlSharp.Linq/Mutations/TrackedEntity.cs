@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {
@@ -140,7 +140,7 @@ namespace CqlSharp.Linq.Mutations
         /// <param name="newOriginal"> The new original. </param>
         void ITrackedEntity.SetOriginalValues(object newOriginal)
         {
-            SetOriginalValues((TEntity)newOriginal);
+            SetOriginalValues((TEntity) newOriginal);
         }
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace CqlSharp.Linq.Mutations
         /// <param name="newValues"> The new values. </param>
         void ITrackedEntity.SetObjectValues(object newValues)
         {
-            SetObjectValues((TEntity)newValues);
+            SetObjectValues((TEntity) newValues);
         }
 
         /// <summary>
@@ -193,7 +193,7 @@ namespace CqlSharp.Linq.Mutations
 
                     if (column.CqlType == CqlType.List || column.CqlType == CqlType.Map || column.CqlType == CqlType.Set)
                     {
-                        if (!TypeSystem.SequenceEqual((IEnumerable)original, (IEnumerable)actual))
+                        if (!TypeSystem.SequenceEqual((IEnumerable) original, (IEnumerable) actual))
                             changedColumns.Add(column);
                     }
                     else if (!Equals(original, actual))

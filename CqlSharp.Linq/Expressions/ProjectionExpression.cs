@@ -22,10 +22,10 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class ProjectionExpression : Expression
     {
+        private readonly bool _canTrackChanges;
         private readonly Expression _projection;
         private readonly ResultFunction _resultFunction;
         private readonly SelectStatementExpression _select;
-        private readonly bool _canTrackChanges;
 
 
         public ProjectionExpression(SelectStatementExpression select, Expression projection, bool canTrackChanges,
@@ -49,7 +49,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType)CqlExpressionType.Projection; }
+            get { return (ExpressionType) CqlExpressionType.Projection; }
         }
 
         public ResultFunction ResultFunction
@@ -76,7 +76,7 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            var selector = (SelectStatementExpression)visitor.Visit(_select);
+            var selector = (SelectStatementExpression) visitor.Visit(_select);
             var projector = visitor.Visit(_projection);
 
             if (selector != _select || projector != _projection)

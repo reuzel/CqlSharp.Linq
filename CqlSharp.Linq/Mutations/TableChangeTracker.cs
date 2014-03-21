@@ -86,14 +86,13 @@ namespace CqlSharp.Linq.Mutations
         }
 
         /// <summary>
-        ///   Saves the changes.
+        ///   enlists the changes to a transaction
         /// </summary>
+        /// <param name="transaction"> transaction the changes is enlisted on </param>
         /// <param name="consistency"> The consistency. </param>
-        public void SaveChanges(CqlConsistency consistency)
+        /// <param name="connection"> connection to execute command on </param>
+        public void EnlistChanges(CqlConnection connection, CqlBatchTransaction transaction, CqlConsistency consistency)
         {
-            var connection = _table.Context.Database.Connection;
-            if (connection.State == ConnectionState.Closed) connection.Open();
-
             foreach (var trackedObject in _trackedEntities.Values)
             {
                 if (trackedObject.State != EntityState.Unchanged)
@@ -101,15 +100,27 @@ namespace CqlSharp.Linq.Mutations
                     var cql = trackedObject.GetDmlStatement();
                     _table.Context.Database.LogQuery(cql);
 
-                    var command = new CqlCommand(connection, cql, consistency);
-                    command.PartitionKey.Set(trackedObject.Entity);
-                    command.ExecuteNonQueryAsync();
-
-                    trackedObject.SetOriginalValues(trackedObject.Entity);
-                    trackedObject.State = EntityState.Unchanged;
+                    var command = new CqlCommand(connection, cql, consistency) { Transaction = transaction };
+                    command.ExecuteNonQuery();
                 }
             }
         }
+
+        public void AcceptAllChanges()
+        {
+            foreach (var trackedObject in _trackedEntities.Values)
+            {
+                trackedObject.SetOriginalValues(trackedObject.Entity);
+                trackedObject.State = EntityState.Unchanged;
+            }
+        }
+
+        IEnumerable<ITrackedEntity> ITableChangeTracker.Entries()
+        {
+            return Entries();
+        }
+
+        #endregion
 
         /// <summary>
         ///   Saves the changes with the required consistency level.
@@ -136,19 +147,9 @@ namespace CqlSharp.Linq.Mutations
                     command.PartitionKey.Set(trackedObject.Entity);
 
                     await command.ExecuteNonQueryAsync(cancellationToken);
-
-                    trackedObject.SetOriginalValues(trackedObject.Entity);
-                    trackedObject.State = EntityState.Unchanged;
                 }
             }
         }
-
-        IEnumerable<ITrackedEntity> ITableChangeTracker.Entries()
-        {
-            return Entries();
-        }
-
-        #endregion
 
         /// <summary>
         ///   Adds the entity in an Added state.
