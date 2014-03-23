@@ -49,7 +49,7 @@ namespace CqlSharp.Linq.Query
         /// <returns> </returns>
         private static Expression CreateTableProjection(ICqlTable table)
         {
-            var enumType = typeof (IEnumerable<>).MakeGenericType(table.Type);
+            var enumType = typeof (IEnumerable<>).MakeGenericType(table.EntityType);
 
             var selectors = new List<SelectorExpression>();
             var bindings = new List<MemberBinding>();
@@ -69,7 +69,7 @@ namespace CqlSharp.Linq.Query
             var selectClause = new SelectClauseExpression(selectors, false);
             var selectStmt = new SelectStatementExpression(enumType, selectClause, table.Name, null, null, null, false);
 
-            var projection = Expression.MemberInit(Expression.New(table.Type), bindings);
+            var projection = Expression.MemberInit(Expression.New(table.EntityType), bindings);
 
             return new ProjectionExpression(selectStmt, projection, true, null);
         }
@@ -93,7 +93,7 @@ namespace CqlSharp.Linq.Query
                                                                        true);
 
                             return new ProjectionExpression(select, source.Projection, source.CanTrackChanges,
-                                                            source.ResultFunction);
+                                                            source.Aggregator);
                         }
                 }
             }
@@ -139,7 +139,7 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //update projection
-                            return new ProjectionExpression(select, source.Projection, false, source.ResultFunction);
+                            return new ProjectionExpression(select, source.Projection, false, source.Aggregator);
                         }
 
                     case "Take":
@@ -162,7 +162,7 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             return new ProjectionExpression(select, source.Projection, source.CanTrackChanges,
-                                                            source.ResultFunction);
+                                                            source.Aggregator);
                         }
 
                     case "First":
@@ -190,9 +190,9 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //use Enumerable logic for processing result set
-                            ResultFunction processor = call.Method.Name.Equals("First")
+                            AggregateFunction processor = call.Method.Name.Equals("First")
                                                            ? Enumerable.First
-                                                           : (ResultFunction) Enumerable.FirstOrDefault;
+                                                           : (AggregateFunction) Enumerable.FirstOrDefault;
 
                             return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, processor);
                         }
@@ -225,9 +225,9 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //use Enumerable logic for processing result set
-                            ResultFunction processor = call.Method.Name.Equals("Single")
+                            AggregateFunction processor = call.Method.Name.Equals("Single")
                                                            ? Enumerable.Single
-                                                           : (ResultFunction) Enumerable.SingleOrDefault;
+                                                           : (AggregateFunction) Enumerable.SingleOrDefault;
 
 
                             return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, processor);

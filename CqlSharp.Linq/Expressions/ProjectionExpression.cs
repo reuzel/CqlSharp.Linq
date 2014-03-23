@@ -24,17 +24,17 @@ namespace CqlSharp.Linq.Expressions
     {
         private readonly bool _canTrackChanges;
         private readonly Expression _projection;
-        private readonly ResultFunction _resultFunction;
+        private readonly AggregateFunction _aggregator;
         private readonly SelectStatementExpression _select;
 
 
         public ProjectionExpression(SelectStatementExpression select, Expression projection, bool canTrackChanges,
-                                    ResultFunction resultFunction)
+                                    AggregateFunction aggregator)
         {
             _select = @select;
             _projection = projection;
             _canTrackChanges = canTrackChanges;
-            _resultFunction = resultFunction;
+            _aggregator = aggregator;
         }
 
         public SelectStatementExpression Select
@@ -52,9 +52,9 @@ namespace CqlSharp.Linq.Expressions
             get { return (ExpressionType) CqlExpressionType.Projection; }
         }
 
-        public ResultFunction ResultFunction
+        public AggregateFunction Aggregator
         {
-            get { return _resultFunction; }
+            get { return _aggregator; }
         }
 
         public bool CanTrackChanges
@@ -80,7 +80,7 @@ namespace CqlSharp.Linq.Expressions
             var projector = visitor.Visit(_projection);
 
             if (selector != _select || projector != _projection)
-                return new ProjectionExpression(selector, projector, _canTrackChanges, _resultFunction);
+                return new ProjectionExpression(selector, projector, _canTrackChanges, _aggregator);
 
             return this;
         }

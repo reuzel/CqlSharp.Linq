@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Linq;
-using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Threading.Tasks;
 using CqlSharp.Linq.Mutations;
 using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -270,13 +271,16 @@ namespace CqlSharp.Linq.Test
 
                 var value = context.Values.Find(500);
                 value.Value = "Hallo daar!";
-                context.SaveChanges();
+                context.SaveChanges(false);
 
                 var command = new CqlCommand(connection, "update myvalue set value='adjusted' where id=500");
                 command.Transaction = transaction;
                 command.ExecuteNonQuery();
 
                 transaction.Commit();
+
+                //accept all changes only after commit
+                context.AcceptAllChanges();
             }
 
             using (var context = new MyContext(ConnectionString))
@@ -303,6 +307,36 @@ namespace CqlSharp.Linq.Test
                 var value = context.Values.Find(202);
                 Assert.IsNotNull(value);
                 Assert.AreEqual("Zo gaan we weer verder", value.Value);
+            }
+        }
+
+        [TestMethod]
+        public async Task SelectAndDelete()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
+                var query = context.Values.Where(r => new[] { 701, 702, 703, 704 }.Contains(r.Id)).ToList();
+
+                TrackedEntity<MyValue> entry;
+                Assert.IsTrue(context.ChangeTracker.TryGetEntry(query[1], out entry));
+
+                Assert.AreEqual(EntityState.Unchanged, entry.State);
+
+                context.Values.Delete(query[1]);
+
+                Assert.AreEqual(EntityState.Deleted, entry.State);
+
+                await context.SaveChangesAsync();
+
+                Assert.AreEqual(EntityState.Detached, entry.State);
+
+            }
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Find(702);
+                Assert.IsNull(value, "Value was not deleted");
             }
         }
 
@@ -357,13 +391,15 @@ namespace CqlSharp.Linq.Test
                 bool added = context.Values.Add(newValue);
                 Assert.IsTrue(added);
 
-                var entry = context.ChangeTracker.Entries<MyValue>().First(mv=>mv.Entity.Id==30000);
+
+                ITrackedEntity entry;
+                Assert.IsTrue(context.ChangeTracker.TryGetEntry(newValue, out entry));
                 Assert.AreEqual(EntityState.Added, entry.State);
-                
+
                 context.SaveChanges();
 
                 Assert.AreEqual(EntityState.Unchanged, entry.State);
-                
+
                 newValue.Value = "Hallo weer!";
                 context.SaveChanges();
                 Assert.AreEqual(2, count, "Where is my query?");

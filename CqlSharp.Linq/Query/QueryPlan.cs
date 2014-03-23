@@ -30,13 +30,13 @@ namespace CqlSharp.Linq.Query
         /// <param name="cql"> The CQL query </param>
         /// <param name="projector"> The projector of the results </param>
         /// <param name="canTrackChanges"> </param>
-        /// <param name="resultFunction"> The result function. </param>
-        public QueryPlan(string cql, Delegate projector, bool canTrackChanges, ResultFunction resultFunction)
+        /// <param name="aggregateFunction"> The result function. </param>
+        public QueryPlan(string cql, Delegate projector, bool canTrackChanges, AggregateFunction aggregateFunction)
         {
             Cql = cql;
             Projector = projector;
             CanTrackChanges = canTrackChanges;
-            ResultFunction = resultFunction;
+            Aggregator = aggregateFunction;
         }
 
         /// <summary>
@@ -58,10 +58,10 @@ namespace CqlSharp.Linq.Query
         public bool CanTrackChanges { get; private set; }
 
         /// <summary>
-        ///   Gets the result function that, if set, aggregates the results into the required form
+        ///   Gets the function that, if set, aggregates the results into the required form
         /// </summary>
         /// <value> The result function. </value>
-        public ResultFunction ResultFunction { get; private set; }
+        public AggregateFunction Aggregator { get; private set; }
 
         /// <summary>
         ///   Executes the query plan on the specified context.
@@ -81,7 +81,7 @@ namespace CqlSharp.Linq.Query
                 context.Database.LogQuery(Cql);
 
                 //return empty array
-                if (ResultFunction == null)
+                if (Aggregator == null)
                     return Array.CreateInstance(projectionType, 0);
 
                 //return default value or null
@@ -107,8 +107,8 @@ namespace CqlSharp.Linq.Query
                     null);
             }
 
-            if (ResultFunction != null)
-                return ResultFunction.Invoke(reader.AsObjectEnumerable());
+            if (Aggregator != null)
+                return Aggregator.Invoke(reader.AsObjectEnumerable());
 
             return reader;
         }

@@ -62,7 +62,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Sets the object values.
         /// </summary>
         /// <param name="newValues"> The new values. </param>
-        void SetObjectValues(object newValues);
+        void SetEntityValues(object newValues);
 
         /// <summary>
         ///   Reloads this instance from the database, effectively making it unchanged.

@@ -17,5 +17,5 @@ using System.Collections.Generic;
 
 namespace CqlSharp.Linq.Expressions
 {
-    internal delegate object ResultFunction(IEnumerable<object> resultSet);
+    internal delegate object AggregateFunction(IEnumerable<object> resultSet);
 }

@@ -56,7 +56,7 @@ namespace CqlSharp.Linq.Query
                                                           select.AllowFiltering);
 
             return new ProjectionExpression(newSelect, projection.Projection, projection.CanTrackChanges,
-                                            projection.ResultFunction);
+                                            projection.Aggregator);
         }
     }
 }

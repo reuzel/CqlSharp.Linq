@@ -37,9 +37,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -57,7 +55,7 @@
     <Compile Include="Expressions\ProjectionExpression.cs" />
     <Compile Include="Expressions\ExpressionCollectionExtensions.cs" />
     <Compile Include="Expressions\RelationExpression.cs" />
-    <Compile Include="Expressions\ResultFunction.cs" />
+    <Compile Include="Expressions\AggregateFunction.cs" />
     <Compile Include="Expressions\SelectClauseExpression.cs" />
     <Compile Include="Expressions\SelectorExpression.cs" />
     <Compile Include="Expressions\SelectStatementExpression.cs" />
@@ -73,7 +71,7 @@
     <Compile Include="Mutations\TableChangeTracker.cs" />
     <Compile Include="Mutations\TrackedEntity.cs" />
     <Compile Include="Mutations\EntityState.cs" />
-    <Compile Include="Mutations\ChangeTracker.cs" />
+    <Compile Include="Mutations\CqlChangeTracker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CqlQueryable.cs" />
     <Compile Include="Query\BuilderBase.cs" />

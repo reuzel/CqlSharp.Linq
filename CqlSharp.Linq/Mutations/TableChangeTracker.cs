@@ -44,7 +44,7 @@ namespace CqlSharp.Linq.Mutations
 
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="ChangeTracker" /> class.
+        ///   Initializes a new instance of the <see cref="CqlChangeTracker" /> class.
         /// </summary>
         public TableChangeTracker(CqlTable<TEntity> table)
         {
@@ -110,8 +110,17 @@ namespace CqlSharp.Linq.Mutations
         {
             foreach (var trackedObject in _trackedEntities.Values)
             {
-                trackedObject.SetOriginalValues(trackedObject.Entity);
-                trackedObject.State = EntityState.Unchanged;
+                switch(trackedObject.State)
+                {
+                    case EntityState.Deleted:
+                        trackedObject.State = EntityState.Detached;
+                        break;
+                    case EntityState.Added:
+                    case EntityState.Modified:
+                        trackedObject.SetOriginalValues(trackedObject.Entity);
+                        trackedObject.State = EntityState.Unchanged;
+                        break;
+                }
             }
         }
 
@@ -320,6 +329,33 @@ namespace CqlSharp.Linq.Mutations
         public IEnumerable<TrackedEntity<TEntity>> Entries()
         {
             return _trackedEntities.Values;
+        }
+
+        /// <summary>
+        /// Tries to get the tracked entry related to the provided entity.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <param name="entry">The entry.</param>
+        /// <returns></returns>
+        public bool TryGetEntry(TEntity entity, out TrackedEntity<TEntity> entry)
+        {
+            lock(_syncLock)
+            {
+                return _trackedEntities.TryGetValue(entity, out entry);
+            }
+        }
+
+        bool ITableChangeTracker.TryGetEntry(object entity, out ITrackedEntity entry)
+        {
+            TrackedEntity<TEntity> trackedEntity;
+            if(_trackedEntities.TryGetValue((TEntity)entity, out trackedEntity))
+            {
+                entry = trackedEntity;
+                return true;
+            }
+
+            entry = null;
+            return false;
         }
     }
 }

@@ -39,7 +39,7 @@ namespace CqlSharp.Linq
         ///   Gets the CQL query provider.
         /// </summary>
         /// <value> The CQL query provider. </value>
-        internal CqlQueryProvider CqlQueryProvider { get; private set; }
+        internal CqlQueryProvider QueryProvider { get; private set; }
 
 
         /// <summary>
@@ -54,8 +54,8 @@ namespace CqlSharp.Linq
             _database = new CqlDatabase(this);
 
             _tables = new ConcurrentDictionary<Type, ICqlTable>();
-            ChangeTracker = new ChangeTracker(this);
-            CqlQueryProvider = new CqlQueryProvider(this);
+            ChangeTracker = new CqlChangeTracker(this);
+            QueryProvider = new CqlQueryProvider(this);
 
             if (initializeTables)
                 InitializeTables();
@@ -127,7 +127,7 @@ namespace CqlSharp.Linq
                                                  new object[] { this }, null);
 
                     //add it to the list of known tables
-                    table = _tables.GetOrAdd(table.Type, table);
+                    table = _tables.GetOrAdd(table.EntityType, table);
 
                     //set the property
                     property.SetValue(this, table);
@@ -160,8 +160,7 @@ namespace CqlSharp.Linq
         ///   Gets the mutation tracker.
         /// </summary>
         /// <value> The mutation tracker. </value>
-        public ChangeTracker ChangeTracker { get; private set; }
-
+        public CqlChangeTracker ChangeTracker { get; private set; }
 
         #region SaveChanges
 
@@ -267,7 +266,7 @@ namespace CqlSharp.Linq
 
 
         #endregion
-        
+
         /// <summary>
         /// Accepts all changes made to tracked entities, and regards them as unchanged afterwards.
         /// </summary>

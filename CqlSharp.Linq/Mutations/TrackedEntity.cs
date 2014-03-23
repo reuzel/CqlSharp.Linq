@@ -147,9 +147,9 @@ namespace CqlSharp.Linq.Mutations
         ///   Sets the object values.
         /// </summary>
         /// <param name="newValues"> The new values. </param>
-        void ITrackedEntity.SetObjectValues(object newValues)
+        void ITrackedEntity.SetEntityValues(object newValues)
         {
-            SetObjectValues((TEntity) newValues);
+            SetEntityValues((TEntity) newValues);
         }
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Sets object values
         /// </summary>
         /// <param name="newValues"> The values to use as object values, which should represent the new (uncommitted) database state </param>
-        public void SetObjectValues(TEntity newValues)
+        public void SetEntityValues(TEntity newValues)
         {
             if (!Key.IsKeyOf(newValues))
                 throw new ArgumentException(
@@ -274,7 +274,7 @@ namespace CqlSharp.Linq.Mutations
                 {
                     var row = reader.Current;
                     SetOriginalValues(row);
-                    SetObjectValues(row);
+                    SetEntityValues(row);
                     State = EntityState.Unchanged;
                 }
                 else

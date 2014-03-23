@@ -17,6 +17,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CqlSharp.Linq.Query
@@ -40,9 +41,9 @@ namespace CqlSharp.Linq.Query
         ///   projector</exception>
         public TrackingReader(CqlContext context, string cql, Func<CqlDataReader, TEntity> projector)
         {
-            if (context == null) throw new ArgumentNullException("context");
-            if (cql == null) throw new ArgumentNullException("cql");
-            if (projector == null) throw new ArgumentNullException("projector");
+            Debug.Assert(context != null, "Context may not be null");
+            Debug.Assert(cql != null, "Cql may not be null");
+            Debug.Assert(projector != null, "projector may not be null");
 
             _context = context;
             _cql = cql;

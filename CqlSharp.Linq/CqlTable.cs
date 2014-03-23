@@ -33,7 +33,7 @@ namespace CqlSharp.Linq
         private TableChangeTracker<TEntity> _tracker;
 
         internal CqlTable(CqlContext context)
-            : base(context.CqlQueryProvider)
+            : base(context.QueryProvider)
         {
             if (context == null)
                 throw new ArgumentNullException("context");
@@ -92,7 +92,7 @@ namespace CqlSharp.Linq
         ///   Gets the type of entity contained by this table.
         /// </summary>
         /// <value> The entityType. </value>
-        public Type Type
+        public Type EntityType
         {
             get { return ObjectAccessor<TEntity>.Instance.Type; }
         }

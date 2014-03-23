@@ -40,7 +40,7 @@ namespace CqlSharp.Linq
         ///   Gets the type of entity contained by this table.
         /// </summary>
         /// <value> The type. </value>
-        Type Type { get; }
+        Type EntityType { get; }
 
         /// <summary>
         ///   Gets the context this table instance belongs to.

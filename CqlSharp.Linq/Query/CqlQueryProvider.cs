@@ -59,12 +59,12 @@ namespace CqlSharp.Linq.Query
             Debug.WriteLine("Generated CQL: " + cql);
             Debug.WriteLine("Generated Projector: " + projector);
             Debug.WriteLine("Result processor: " +
-                            (translation.ResultFunction != null
-                                 ? translation.ResultFunction.GetMethodInfo().ToString()
+                            (translation.Aggregator != null
+                                 ? translation.Aggregator.GetMethodInfo().ToString()
                                  : "<none>"));
 
             //return translation results
-            return new QueryPlan(cql, projector.Compile(), translation.CanTrackChanges, translation.ResultFunction);
+            return new QueryPlan(cql, projector.Compile(), translation.CanTrackChanges, translation.Aggregator);
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)
