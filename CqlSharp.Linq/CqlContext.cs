@@ -35,12 +35,32 @@ namespace CqlSharp.Linq
         /// </summary>
         private readonly ConcurrentDictionary<Type, ICqlTable> _tables;
 
+        private CqlChangeTracker _changeTracker;
+        private bool _trackChanges;
+
         /// <summary>
         ///   Gets the CQL query provider.
         /// </summary>
         /// <value> The CQL query provider. </value>
         internal CqlQueryProvider QueryProvider { get; private set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance of the context will track changes to entities.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [track changes]; otherwise, <c>false</c>.
+        /// </value>
+        public bool TrackChanges
+        {
+            get { return _trackChanges; }
+            set
+            {
+                _trackChanges = value;
+
+                if (!TrackChanges && _changeTracker != null)
+                    _changeTracker.Clear();
+            }
+        }
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlContext" /> class.
@@ -52,10 +72,11 @@ namespace CqlSharp.Linq
             SkipExecute = false;
 #endif
             _database = new CqlDatabase(this);
-
             _tables = new ConcurrentDictionary<Type, ICqlTable>();
-            ChangeTracker = new CqlChangeTracker(this);
+
             QueryProvider = new CqlQueryProvider(this);
+
+            TrackChanges = true;
 
             if (initializeTables)
                 InitializeTables();
@@ -123,7 +144,7 @@ namespace CqlSharp.Linq
                     //create new table object
                     var table =
                         (ICqlTable)
-                        Activator.CreateInstance(propertyType, BindingFlags.NonPublic | BindingFlags.Instance, null,
+                        Activator.CreateInstance(propertyType, BindingFlags.Public | BindingFlags.Instance, null,
                                                  new object[] { this }, null);
 
                     //add it to the list of known tables
@@ -159,8 +180,20 @@ namespace CqlSharp.Linq
         /// <summary>
         ///   Gets the mutation tracker.
         /// </summary>
-        /// <value> The mutation tracker. </value>
-        public CqlChangeTracker ChangeTracker { get; private set; }
+        /// <value> The mutation tracker that keeps track of changes to all entities</value>
+        public CqlChangeTracker ChangeTracker
+        {
+            get
+            {
+                if (_changeTracker == null)
+                {
+                    var tracker = new CqlChangeTracker(this);
+                    Interlocked.CompareExchange(ref _changeTracker, tracker, null);
+                }
+
+                return _changeTracker;
+            }
+        }
 
         #region SaveChanges
 
@@ -169,7 +202,8 @@ namespace CqlSharp.Linq
         /// </summary>
         public void SaveChanges()
         {
-            ChangeTracker.SaveChanges(CqlConsistency.One, true);
+            if (TrackChanges)
+                ChangeTracker.SaveChanges(CqlConsistency.One, true);
         }
 
         /// <summary>
@@ -178,7 +212,8 @@ namespace CqlSharp.Linq
         /// <param name="acceptChangesDuringSave">if set to <c>true</c> [accept changes during save].</param>
         public void SaveChanges(bool acceptChangesDuringSave)
         {
-            ChangeTracker.SaveChanges(CqlConsistency.One, acceptChangesDuringSave);
+            if (TrackChanges)
+                ChangeTracker.SaveChanges(CqlConsistency.One, acceptChangesDuringSave);
         }
 
 
@@ -188,7 +223,8 @@ namespace CqlSharp.Linq
         /// <param name="consistency"> The consistency level. Defaults to one. </param>
         public void SaveChanges(CqlConsistency consistency)
         {
-            ChangeTracker.SaveChanges(consistency, true);
+            if (TrackChanges)
+                ChangeTracker.SaveChanges(consistency, true);
         }
 
 
@@ -199,7 +235,8 @@ namespace CqlSharp.Linq
         /// <param name="acceptChangesDuringSave">if set to <c>true</c> [accept changes during save].</param>
         public void SaveChanges(CqlConsistency consistency, bool acceptChangesDuringSave)
         {
-            ChangeTracker.SaveChanges(consistency, acceptChangesDuringSave);
+            if (TrackChanges)
+                ChangeTracker.SaveChanges(consistency, acceptChangesDuringSave);
         }
 
 
@@ -261,7 +298,10 @@ namespace CqlSharp.Linq
         public Task SaveChangesAsync(CqlConsistency consistency, bool acceptChangesDuringSave,
                                      CancellationToken cancellationToken)
         {
-            return ChangeTracker.SaveChangesAsync(consistency, acceptChangesDuringSave, cancellationToken);
+            if (TrackChanges)
+                return ChangeTracker.SaveChangesAsync(consistency, acceptChangesDuringSave, cancellationToken);
+
+            return Task.FromResult(false);
         }
 
 
@@ -272,7 +312,8 @@ namespace CqlSharp.Linq
         /// </summary>
         public void AcceptAllChanges()
         {
-            ChangeTracker.AcceptAllChanges();
+            if (TrackChanges)
+                ChangeTracker.AcceptAllChanges();
         }
     }
 }

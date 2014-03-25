@@ -14,10 +14,7 @@
 // limitations under the License.
 
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CqlSharp.Linq.Mutations
 {
@@ -110,7 +107,7 @@ namespace CqlSharp.Linq.Mutations
         {
             foreach (var trackedObject in _trackedEntities.Values)
             {
-                switch(trackedObject.State)
+                switch (trackedObject.State)
                 {
                     case EntityState.Deleted:
                         trackedObject.State = EntityState.Detached;
@@ -130,35 +127,6 @@ namespace CqlSharp.Linq.Mutations
         }
 
         #endregion
-
-        /// <summary>
-        ///   Saves the changes with the required consistency level.
-        /// </summary>
-        /// <param name="cancellationToken"> the cancellation token </param>
-        /// <param name="consistency"> The consistency level. Defaults to one. </param>
-        public async Task SaveChangesAsync(CqlConsistency consistency, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var connection = _table.Context.Database.Connection;
-
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync(cancellationToken);
-
-            foreach (var trackedObject in _trackedEntities.Values)
-            {
-                if (trackedObject.State != EntityState.Unchanged)
-                {
-                    var cql = trackedObject.GetDmlStatement();
-                    _table.Context.Database.LogQuery(cql);
-
-                    var command = new CqlCommand(connection, cql, consistency);
-                    command.PartitionKey.Set(trackedObject.Entity);
-
-                    await command.ExecuteNonQueryAsync(cancellationToken);
-                }
-            }
-        }
 
         /// <summary>
         ///   Adds the entity in an Added state.
@@ -339,7 +307,7 @@ namespace CqlSharp.Linq.Mutations
         /// <returns></returns>
         public bool TryGetEntry(TEntity entity, out TrackedEntity<TEntity> entry)
         {
-            lock(_syncLock)
+            lock (_syncLock)
             {
                 return _trackedEntities.TryGetValue(entity, out entry);
             }
@@ -348,7 +316,7 @@ namespace CqlSharp.Linq.Mutations
         bool ITableChangeTracker.TryGetEntry(object entity, out ITrackedEntity entry)
         {
             TrackedEntity<TEntity> trackedEntity;
-            if(_trackedEntities.TryGetValue((TEntity)entity, out trackedEntity))
+            if (_trackedEntities.TryGetValue((TEntity)entity, out trackedEntity))
             {
                 entry = trackedEntity;
                 return true;

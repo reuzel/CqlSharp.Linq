@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Linq.Test
@@ -70,6 +71,41 @@ namespace CqlSharp.Linq.Test
                 Assert.IsFalse(context.Values.Detach(value));
 
                 Assert.IsFalse(context.ChangeTracker.HasChanges());
+            }
+        }
+
+        [TestMethod]
+        public void NoTrackingContextAddAttachDeleteDetachEntity()
+        {
+            using (var context = new MyContext())
+            {
+                context.TrackChanges = false;
+
+                var value = new MyValue { Id = 1, Value = "1" };
+                Assert.IsFalse(context.Values.Attach(value));
+                Assert.IsFalse(context.Values.Add(value));
+                Assert.IsFalse(context.Values.Delete(value));
+                Assert.IsFalse(context.Values.Detach(value));
+
+                Assert.IsFalse(context.ChangeTracker.HasChanges());
+            }
+        }
+
+        [TestMethod]
+        public void ContextDisableTrackingClearsTrackedEntries()
+        {
+            using (var context = new MyContext())
+            {
+
+                var value = new MyValue { Id = 1, Value = "1" };
+                Assert.IsTrue(context.Values.Add(value));
+                Assert.IsTrue(context.ChangeTracker.HasChanges());
+
+                context.TrackChanges = false;
+
+                Assert.IsFalse(context.ChangeTracker.HasChanges());
+                Assert.AreEqual(0, context.ChangeTracker.Entries<MyValue>().Count());
+                Assert.AreEqual(0, context.ChangeTracker.Entries().Count());
             }
         }
     }

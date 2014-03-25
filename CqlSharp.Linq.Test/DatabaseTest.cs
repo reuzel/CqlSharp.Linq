@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Threading.Tasks;
 using CqlSharp.Linq.Mutations;
 using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CqlSharp.Linq.Test
 {
@@ -323,7 +323,7 @@ namespace CqlSharp.Linq.Test
 
                 Assert.AreEqual(EntityState.Unchanged, entry.State);
 
-                context.Values.Delete(query[1]);
+                Assert.IsTrue(context.Values.Delete(query[1]));
 
                 Assert.AreEqual(EntityState.Deleted, entry.State);
 
@@ -410,6 +410,53 @@ namespace CqlSharp.Linq.Test
                 var value = context.Values.Find(30000);
                 Assert.IsNotNull(value);
                 Assert.AreEqual("Hallo weer!", value.Value);
+            }
+        }
+
+        [TestMethod]
+        public void QueryNoTracking()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var query = context.Values.Where(r => new[] { 701, 702, 703, 704 }.Contains(r.Id)).AsNoTracking().ToList();
+
+                TrackedEntity<MyValue> entry;
+                Assert.IsFalse(context.ChangeTracker.TryGetEntry(query[1], out entry));
+            }
+        }
+
+        [TestMethod]
+        public void QueryContextNoTracking()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.TrackChanges = false;
+
+                //query, and check if tracked
+                var query = context.Values.Where(r => new[] { 701, 702, 703, 704 }.Contains(r.Id)).ToList();
+                TrackedEntity<MyValue> entry;
+                Assert.IsFalse(context.ChangeTracker.TryGetEntry(query[1], out entry));
+
+                //find and check if tracked
+                var entity = context.Values.Find(1);
+                Assert.IsNotNull(entity);
+                Assert.IsFalse(context.ChangeTracker.TryGetEntry(entity, out entry));
+            }
+        }
+
+        [TestMethod]
+        public void FindContextNoTracking()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.TrackChanges = false;
+                
+                //find and check if tracked
+                var entity = context.Values.Find(1);
+                Assert.IsNotNull(entity);
+
+                TrackedEntity<MyValue> entry;
+                Assert.IsFalse(context.ChangeTracker.TryGetEntry(entity, out entry));
             }
         }
     }

@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Threading.Tasks;
 using CqlSharp.Linq.Mutations;
 using CqlSharp.Linq.Query;
 using CqlSharp.Serialization;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CqlSharp.Linq
 {
@@ -32,7 +33,7 @@ namespace CqlSharp.Linq
         private readonly CqlContext _context;
         private TableChangeTracker<TEntity> _tracker;
 
-        internal CqlTable(CqlContext context)
+        public CqlTable(CqlContext context)
             : base(context.QueryProvider)
         {
             if (context == null)
@@ -105,6 +106,9 @@ namespace CqlSharp.Linq
         {
             get
             {
+                if (!_context.TrackChanges)
+                    return null;
+
                 if (_tracker == null)
                     _tracker = _context.ChangeTracker.GetTableChangeTracker<TEntity>();
 
@@ -118,7 +122,10 @@ namespace CqlSharp.Linq
         /// <value> The local. </value>
         public IEnumerable<TEntity> Local
         {
-            get { return ChangeTracker.Entities(); }
+            get
+            {
+                return _context.TrackChanges ? ChangeTracker.Entities() : Enumerable.Empty<TEntity>();
+            }
         }
 
         /// <summary>
@@ -127,7 +134,7 @@ namespace CqlSharp.Linq
         /// <param name="entity"> The entity. </param>
         public bool Add(TEntity entity)
         {
-            return ChangeTracker.Add(entity);
+            return _context.TrackChanges && ChangeTracker.Add(entity);
         }
 
         /// <summary>
@@ -137,7 +144,7 @@ namespace CqlSharp.Linq
         /// <returns> </returns>
         public bool Attach(TEntity entity)
         {
-            return ChangeTracker.Attach(entity);
+            return _context.TrackChanges && ChangeTracker.Attach(entity);
         }
 
         /// <summary>
@@ -147,16 +154,22 @@ namespace CqlSharp.Linq
         /// <returns> </returns>
         public bool Detach(TEntity entity)
         {
-            return ChangeTracker.Detach(entity);
+            return _context.TrackChanges && ChangeTracker.Detach(entity);
         }
 
         /// <summary>
-        ///   Marks the specified entity as to-be deleted
+        /// Marks the specified entity as to-be deleted
         /// </summary>
-        /// <param name="entity"> The entity. </param>
-        public void Delete(TEntity entity)
+        /// <param name="entity">The entity.</param>
+        /// <returns>true if the entity is marked as deleted.</returns>
+        public bool Delete(TEntity entity)
         {
-            ChangeTracker.Delete(entity);
+            if (_context.TrackChanges)
+            {
+                ChangeTracker.Delete(entity);
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -165,8 +178,11 @@ namespace CqlSharp.Linq
         /// <param name="entities"> The entities. </param>
         public void AddRange(IEnumerable<TEntity> entities)
         {
-            foreach (var entity in entities)
-                ChangeTracker.Add(entity);
+            if (_context.TrackChanges)
+            {
+                foreach (var entity in entities)
+                    ChangeTracker.Add(entity);
+            }
         }
 
         /// <summary>
@@ -179,8 +195,8 @@ namespace CqlSharp.Linq
         {
             var key = EntityKey<TEntity>.Create(keyValues);
 
-            TEntity entity;
-            if (!ChangeTracker.TryGetEntityByKey(key, out entity))
+            TEntity entity = null;
+            if (!_context.TrackChanges || !ChangeTracker.TryGetEntityByKey(key, out entity))
             {
                 var connection = _context.Database.Connection;
                 if (connection.State == ConnectionState.Closed)
@@ -197,7 +213,8 @@ namespace CqlSharp.Linq
                 {
                     if (reader.Read())
                     {
-                        entity = ChangeTracker.GetOrAttach(reader.Current);
+                        var value = reader.Current;
+                        entity = _context.TrackChanges ? ChangeTracker.GetOrAttach(value) : value;
                     }
                 }
             }
@@ -215,8 +232,8 @@ namespace CqlSharp.Linq
         {
             var key = EntityKey<TEntity>.Create(keyValues);
 
-            TEntity entity;
-            if (!ChangeTracker.TryGetEntityByKey(key, out entity))
+            TEntity entity = null;
+            if (!_context.TrackChanges || !ChangeTracker.TryGetEntityByKey(key, out entity))
             {
                 var connection = _context.Database.Connection;
                 if (connection.State == ConnectionState.Closed)
@@ -230,7 +247,8 @@ namespace CqlSharp.Linq
                 {
                     if (await reader.ReadAsync())
                     {
-                        entity = ChangeTracker.GetOrAttach(reader.Current);
+                        var value = reader.Current;
+                        entity = _context.TrackChanges ? ChangeTracker.GetOrAttach(value) : value;
                     }
                 }
             }

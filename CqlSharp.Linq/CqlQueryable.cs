@@ -25,7 +25,8 @@ namespace CqlSharp.Linq
     /// </summary>
     public static class CqlQueryable
     {
-        private static readonly MethodInfo AllowFilteringMethod = typeof (CqlQueryable).GetMethod("AllowFiltering");
+        private static readonly MethodInfo AllowFilteringMethod = typeof(CqlQueryable).GetMethod("AllowFiltering");
+        private static readonly MethodInfo AsNoTrackinggMethod = typeof(CqlQueryable).GetMethod("AsNoTracking");
 
         /// <summary>
         ///   Enables filtering of queries, using CQL's ALLOW FILTERING clause.
@@ -38,7 +39,23 @@ namespace CqlSharp.Linq
         {
             if (source == null) throw new ArgumentNullException("source");
 
-            var method = AllowFilteringMethod.MakeGenericMethod(new[] {typeof (T)});
+            var method = AllowFilteringMethod.MakeGenericMethod(new[] { typeof(T) });
+            var call = Expression.Call(method, source.Expression);
+            return source.Provider.CreateQuery<T>(call);
+        }
+
+        /// <summary>
+        ///   Disables any change tracking for the entities returned from this query
+        /// </summary>
+        /// <typeparam name="T"> </typeparam>
+        /// <param name="source"> The source. </param>
+        /// <returns> </returns>
+        /// <exception cref="System.ArgumentNullException">source</exception>
+        public static IQueryable<T> AsNoTracking<T>(this IQueryable<T> source)
+        {
+            if (source == null) throw new ArgumentNullException("source");
+
+            var method = AsNoTrackinggMethod.MakeGenericMethod(new[] { typeof(T) });
             var call = Expression.Call(method, source.Expression);
             return source.Provider.CreateQuery<T>(call);
         }

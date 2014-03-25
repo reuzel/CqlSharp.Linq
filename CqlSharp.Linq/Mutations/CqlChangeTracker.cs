@@ -33,7 +33,13 @@ namespace CqlSharp.Linq.Mutations
         /// <summary>
         ///   The table mutation trackers
         /// </summary>
-        private readonly ConcurrentDictionary<Type, ITableChangeTracker> _tableTrackers;
+        private ConcurrentDictionary<Type, ITableChangeTracker> _tableTrackers;
+
+        /// <summary>
+        ///   Gets or sets a value indicating whether the DetectChanges() method is called automatically by methods of CqlContext and related classes. The default value is true
+        /// </summary>
+        /// <value> true if should be called automatically; otherwise, false. </value>
+        public bool AutoDetectChangesEnabled { get; set; }
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlChangeTracker" /> class.
@@ -41,15 +47,29 @@ namespace CqlSharp.Linq.Mutations
         internal CqlChangeTracker(CqlContext context)
         {
             _context = context;
-            _tableTrackers = new ConcurrentDictionary<Type, ITableChangeTracker>();
             AutoDetectChangesEnabled = true;
         }
 
         /// <summary>
-        ///   Gets or sets a value indicating whether the DetectChanges() method is called automatically by methods of CqlContext and related classes. The default value is true
+        /// Gets the table trackers.
         /// </summary>
-        /// <value> true if should be called automatically; otherwise, false. </value>
-        public bool AutoDetectChangesEnabled { get; set; }
+        /// <value>
+        /// The table trackers.
+        /// </value>
+        private ConcurrentDictionary<Type, ITableChangeTracker> TableTrackers
+        {
+            get
+            {
+                if (_tableTrackers == null)
+                {
+                    var tableTrackers = new ConcurrentDictionary<Type, ITableChangeTracker>();
+                    Interlocked.CompareExchange(ref _tableTrackers, tableTrackers, null);
+                }
+
+                return _tableTrackers;
+            }
+        }
+
 
         /// <summary>
         ///   Gets the tracker for the given table.
@@ -60,7 +80,7 @@ namespace CqlSharp.Linq.Mutations
         {
             return
                 (TableChangeTracker<TEntity>)
-                _tableTrackers.GetOrAdd(typeof(TEntity),
+                TableTrackers.GetOrAdd(typeof(TEntity),
                                         t => new TableChangeTracker<TEntity>(_context.GetTable<TEntity>()));
         }
 
@@ -70,7 +90,7 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> </returns>
         public IEnumerable<ITrackedEntity> Entries()
         {
-            return _tableTrackers.Values.SelectMany(tt => tt.Entries());
+            return TableTrackers.Values.SelectMany(tt => tt.Entries());
         }
 
         /// <summary>
@@ -81,7 +101,7 @@ namespace CqlSharp.Linq.Mutations
         public IEnumerable<TrackedEntity<TEntity>> Entries<TEntity>() where TEntity : class, new()
         {
             ITableChangeTracker tableChangeTracker;
-            if (_tableTrackers.TryGetValue(typeof(TEntity), out tableChangeTracker))
+            if (TableTrackers.TryGetValue(typeof(TEntity), out tableChangeTracker))
             {
                 var tracker = (TableChangeTracker<TEntity>)tableChangeTracker;
                 return tracker.Entries();
@@ -101,7 +121,7 @@ namespace CqlSharp.Linq.Mutations
         public bool TryGetEntry(Object entity, out ITrackedEntity entry)
         {
             ITableChangeTracker tableChangeTracker;
-            if (_tableTrackers.TryGetValue(entity.GetType(), out tableChangeTracker))
+            if (TableTrackers.TryGetValue(entity.GetType(), out tableChangeTracker))
             {
                 return tableChangeTracker.TryGetEntry(entity, out entry);
             }
@@ -120,7 +140,7 @@ namespace CqlSharp.Linq.Mutations
         public bool TryGetEntry<TEntity>(TEntity entity, out TrackedEntity<TEntity> entry) where TEntity : class, new()
         {
             ITableChangeTracker tableChangeTracker;
-            if (_tableTrackers.TryGetValue(entity.GetType(), out tableChangeTracker))
+            if (TableTrackers.TryGetValue(entity.GetType(), out tableChangeTracker))
             {
                 var tracker = (TableChangeTracker<TEntity>)tableChangeTracker;
                 return tracker.TryGetEntry(entity, out entry);
@@ -138,7 +158,7 @@ namespace CqlSharp.Linq.Mutations
         {
             bool hasChanges = false;
             // ReSharper disable LoopCanBeConvertedToQuery
-            foreach (var tracker in _tableTrackers.Values)
+            foreach (var tracker in TableTrackers.Values)
             {
                 hasChanges |= tracker.DetectChanges();
             }
@@ -155,7 +175,7 @@ namespace CqlSharp.Linq.Mutations
             if (AutoDetectChangesEnabled)
                 return DetectChanges();
 
-            return _tableTrackers.Values.Any(tt => tt.HasChanges());
+            return TableTrackers.Values.Any(tt => tt.HasChanges());
         }
 
         /// <summary>
@@ -165,6 +185,10 @@ namespace CqlSharp.Linq.Mutations
         /// <param name="acceptChangesDuringSave">if set to <c>true</c> [accept changes during save].</param>
         internal void SaveChanges(CqlConsistency consistency, bool acceptChangesDuringSave)
         {
+            //check wether any changes are there to commit
+            if (!HasChanges())
+                return;
+
             //get the connection, and open it
             var connection = _context.Database.Connection;
             if (connection.State == ConnectionState.Closed)
@@ -189,11 +213,8 @@ namespace CqlSharp.Linq.Mutations
 
             try
             {
-                //detect changes made to entities
-                if (AutoDetectChangesEnabled) DetectChanges();
-
                 //enlist the existing changes
-                foreach (var tracker in _tableTrackers.Values)
+                foreach (var tracker in TableTrackers.Values)
                 {
                     tracker.EnlistChanges(connection, transaction, consistency);
                 }
@@ -222,6 +243,10 @@ namespace CqlSharp.Linq.Mutations
         /// <returns></returns>
         internal async Task SaveChangesAsync(CqlConsistency consistency, bool acceptChangesDuringSave, CancellationToken cancellationToken)
         {
+            //check wether any changes are there to commit
+            if (!HasChanges())
+                return;
+
             //quit when cancelled from the start
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -247,9 +272,6 @@ namespace CqlSharp.Linq.Mutations
 
             try
             {
-                //detect changes made to entities
-                if (AutoDetectChangesEnabled) DetectChanges();
-
                 //enlist changes to the transaction
                 foreach (var tracker in _tableTrackers.Values)
                 {
@@ -281,6 +303,14 @@ namespace CqlSharp.Linq.Mutations
             {
                 tracker.AcceptAllChanges();
             }
+        }
+
+        /// <summary>
+        /// Removes all tracked entries
+        /// </summary>
+        internal void Clear()
+        {
+            _tableTrackers = null;
         }
     }
 }

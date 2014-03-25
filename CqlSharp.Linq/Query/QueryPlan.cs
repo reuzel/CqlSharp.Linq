@@ -90,7 +90,7 @@ namespace CqlSharp.Linq.Query
 #endif
 
             IProjectionReader reader;
-            if (CanTrackChanges)
+            if (CanTrackChanges && context.TrackChanges)
             {
                 reader = (IProjectionReader)Activator.CreateInstance(
                     typeof(TrackingReader<>).MakeGenericType(projectionType),
