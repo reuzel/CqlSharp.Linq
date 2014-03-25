@@ -20,7 +20,7 @@ namespace CqlSharp.Linq.Mutations
     /// <summary>
     ///   Provides non-generic access to a tracked entity
     /// </summary>
-    public interface ITrackedEntity
+    public interface IEntityEntry
     {
         /// <summary>
         ///   Gets the table this entity is part of.

@@ -66,10 +66,10 @@
     <Compile Include="Mutations\EntityKey.cs" />
     <Compile Include="Mutations\IEntityKey.cs" />
     <Compile Include="Mutations\ITableChangeTracker.cs" />
-    <Compile Include="Mutations\ITrackedEntity.cs" />
+    <Compile Include="Mutations\IEntityEntry.cs" />
     <Compile Include="Mutations\ObjectReferenceEqualityComparer.cs" />
     <Compile Include="Mutations\TableChangeTracker.cs" />
-    <Compile Include="Mutations\TrackedEntity.cs" />
+    <Compile Include="Mutations\EntityEntry.cs" />
     <Compile Include="Mutations\EntityState.cs" />
     <Compile Include="Mutations\CqlChangeTracker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

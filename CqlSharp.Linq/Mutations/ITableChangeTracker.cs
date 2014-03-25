@@ -27,7 +27,7 @@ namespace CqlSharp.Linq.Mutations
         void EnlistChanges(CqlConnection connection, CqlBatchTransaction transaction, CqlConsistency cqlConsistency);
         void AcceptAllChanges();
 
-        IEnumerable<ITrackedEntity> Entries();
-        bool TryGetEntry(object entity, out ITrackedEntity entry);
+        IEnumerable<IEntityEntry> Entries();
+        bool TryGetEntry(object entity, out IEntityEntry entry);
     }
 }

@@ -88,7 +88,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Returns the tracked entries in the scope of the related context
         /// </summary>
         /// <returns> </returns>
-        public IEnumerable<ITrackedEntity> Entries()
+        public IEnumerable<IEntityEntry> Entries()
         {
             return TableTrackers.Values.SelectMany(tt => tt.Entries());
         }
@@ -98,7 +98,7 @@ namespace CqlSharp.Linq.Mutations
         /// </summary>
         /// <typeparam name="TEntity"> The type of the entity. </typeparam>
         /// <returns> </returns>
-        public IEnumerable<TrackedEntity<TEntity>> Entries<TEntity>() where TEntity : class, new()
+        public IEnumerable<EntityEntry<TEntity>> Entries<TEntity>() where TEntity : class, new()
         {
             ITableChangeTracker tableChangeTracker;
             if (TableTrackers.TryGetValue(typeof(TEntity), out tableChangeTracker))
@@ -107,27 +107,7 @@ namespace CqlSharp.Linq.Mutations
                 return tracker.Entries();
             }
 
-            return Enumerable.Empty<TrackedEntity<TEntity>>();
-        }
-
-        /// <summary>
-        /// Gets the entry for the given entity.
-        /// </summary>
-        /// <param name="entity">The entity.</param>
-        /// <param name="entry">The entry, if the return value is true</param>
-        /// <returns>
-        /// true if the entity is tracked for changes
-        /// </returns>
-        public bool TryGetEntry(Object entity, out ITrackedEntity entry)
-        {
-            ITableChangeTracker tableChangeTracker;
-            if (TableTrackers.TryGetValue(entity.GetType(), out tableChangeTracker))
-            {
-                return tableChangeTracker.TryGetEntry(entity, out entry);
-            }
-
-            entry = null;
-            return false;
+            return Enumerable.Empty<EntityEntry<TEntity>>();
         }
 
         /// <summary>
@@ -135,19 +115,19 @@ namespace CqlSharp.Linq.Mutations
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity.</typeparam>
         /// <param name="entity">The entity.</param>
-        /// <param name="entry">The entry, if the return value is true</param>
-        /// <returns>true if the entity is tracked for changes</returns>
-        public bool TryGetEntry<TEntity>(TEntity entity, out TrackedEntity<TEntity> entry) where TEntity : class, new()
+        /// the entry if the entity is tracked by the underlying context, or null otherwise
+        public EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class, new()
         {
+            EntityEntry<TEntity> entry = null;
+
             ITableChangeTracker tableChangeTracker;
             if (TableTrackers.TryGetValue(entity.GetType(), out tableChangeTracker))
             {
                 var tracker = (TableChangeTracker<TEntity>)tableChangeTracker;
-                return tracker.TryGetEntry(entity, out entry);
+                tracker.TryGetEntry(entity, out entry);
             }
 
-            entry = null;
-            return false;
+            return entry;
         }
 
         /// <summary>

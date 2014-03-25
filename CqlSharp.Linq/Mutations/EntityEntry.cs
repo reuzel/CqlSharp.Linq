@@ -25,19 +25,19 @@ namespace CqlSharp.Linq.Mutations
     ///   Tracks the changes to a single object of a specific type
     /// </summary>
     /// <typeparam name="TEntity"> The type of the entity. </typeparam>
-    public class TrackedEntity<TEntity> : ITrackedEntity where TEntity : class, new()
+    public class EntityEntry<TEntity> : IEntityEntry where TEntity : class, new()
     {
         private TEntity _original;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="TrackedEntity{TEntity}" /> class.
+        ///   Initializes a new instance of the <see cref="EntityEntry{TEntity}" /> class.
         /// </summary>
         /// <param name="table"> The table. </param>
         /// <param name="key"> the key of the entity being tracked </param>
         /// <param name="entity"> The entity. </param>
         /// <param name="original"> The original. </param>
         /// <param name="entityState"> State of the object. </param>
-        public TrackedEntity(CqlTable<TEntity> table, EntityKey<TEntity> key, TEntity entity, TEntity original,
+        public EntityEntry(CqlTable<TEntity> table, EntityKey<TEntity> key, TEntity entity, TEntity original,
                              EntityState entityState)
         {
             Original = original;
@@ -87,13 +87,13 @@ namespace CqlSharp.Linq.Mutations
             private set { _original = value; }
         }
 
-        #region ITrackedEntity Members
+        #region IEntityEntry Members
 
         /// <summary>
         ///   Gets the table this entity is part of.
         /// </summary>
         /// <value> The table. </value>
-        ICqlTable ITrackedEntity.Table
+        ICqlTable IEntityEntry.Table
         {
             get { return Table; }
         }
@@ -102,7 +102,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Gets the key that uniquely identifies this entity within the table.
         /// </summary>
         /// <value> The key. </value>
-        IEntityKey ITrackedEntity.Key
+        IEntityKey IEntityEntry.Key
         {
             get { return Key; }
         }
@@ -111,7 +111,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Gets the current entity values
         /// </summary>
         /// <value> The entity. </value>
-        object ITrackedEntity.Entity
+        object IEntityEntry.Entity
         {
             get { return Entity; }
         }
@@ -120,7 +120,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Gets the original values as last read from the database.
         /// </summary>
         /// <value> The original. </value>
-        object ITrackedEntity.Original
+        object IEntityEntry.Original
         {
             get { return Original; }
         }
@@ -129,7 +129,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Gets the modification state of this entity .
         /// </summary>
         /// <value> The state. </value>
-        EntityState ITrackedEntity.State
+        EntityState IEntityEntry.State
         {
             get { return State; }
         }
@@ -138,7 +138,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Sets the original values of this entity.
         /// </summary>
         /// <param name="newOriginal"> The new original. </param>
-        void ITrackedEntity.SetOriginalValues(object newOriginal)
+        void IEntityEntry.SetOriginalValues(object newOriginal)
         {
             SetOriginalValues((TEntity) newOriginal);
         }
@@ -147,7 +147,7 @@ namespace CqlSharp.Linq.Mutations
         ///   Sets the object values.
         /// </summary>
         /// <param name="newValues"> The new values. </param>
-        void ITrackedEntity.SetEntityValues(object newValues)
+        void IEntityEntry.SetEntityValues(object newValues)
         {
             SetEntityValues((TEntity) newValues);
         }
@@ -155,7 +155,7 @@ namespace CqlSharp.Linq.Mutations
         /// <summary>
         ///   Reloads this instance from the database, effectively making it unchanged.
         /// </summary>
-        void ITrackedEntity.Reload()
+        void IEntityEntry.Reload()
         {
             Reload();
         }

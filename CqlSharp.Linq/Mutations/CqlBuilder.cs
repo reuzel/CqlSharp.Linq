@@ -70,22 +70,22 @@ namespace CqlSharp.Linq.Mutations
         /// <summary>
         ///   Builds the DML query.
         /// </summary>
-        /// <param name="trackedItem"> The tracked item. </param>
+        /// <param name="item"> The tracked item. </param>
         /// <returns> </returns>
         /// <exception cref="System.InvalidOperationException"></exception>
         /// <exception cref="System.NotImplementedException">InsertOrUpdate is not yet implemented
         ///   or
         ///   PossibleUpdate is not yet implemented</exception>
-        public static string BuildDmlQuery(TrackedEntity<TEntity> trackedItem)
+        public static string BuildDmlQuery(EntityEntry<TEntity> item)
         {
-            switch (trackedItem.State)
+            switch (item.State)
             {
                 case EntityState.Deleted:
-                    return BuildDeleteStatement(trackedItem);
+                    return BuildDeleteStatement(item);
                 case EntityState.Added:
-                    return BuildInsertStatement(trackedItem);
+                    return BuildInsertStatement(item);
                 case EntityState.Modified:
-                    return BuildUpdateStatement(trackedItem);
+                    return BuildUpdateStatement(item);
                 case EntityState.Unchanged:
                     return string.Empty;
                 default:
@@ -95,13 +95,13 @@ namespace CqlSharp.Linq.Mutations
 
         #region Delete functions
 
-        private static string BuildDeleteStatement(TrackedEntity<TEntity> trackedItem)
+        private static string BuildDeleteStatement(EntityEntry<TEntity> item)
         {
             var deleteSb = new StringBuilder();
             deleteSb.Append("DELETE FROM \"");
-            deleteSb.Append(trackedItem.Table.Name.Replace("\"", "\"\""));
+            deleteSb.Append(item.Table.Name.Replace("\"", "\"\""));
             deleteSb.Append("\" WHERE ");
-            TranslatePrimaryConditions(deleteSb, trackedItem);
+            TranslatePrimaryConditions(deleteSb, item);
             deleteSb.Append(";");
 
             return deleteSb.ToString();
@@ -111,24 +111,24 @@ namespace CqlSharp.Linq.Mutations
 
         #region Update functions
 
-        private static string BuildUpdateStatement(TrackedEntity<TEntity> trackedItem)
+        private static string BuildUpdateStatement(EntityEntry<TEntity> item)
         {
             var updateSb = new StringBuilder();
             updateSb.Append("UPDATE \"");
-            updateSb.Append(trackedItem.Table.Name.Replace("\"", "\"\""));
+            updateSb.Append(item.Table.Name.Replace("\"", "\"\""));
             updateSb.Append("\" SET ");
-            TranslateUpdationIdValPairs(updateSb, trackedItem);
+            TranslateUpdationIdValPairs(updateSb, item);
             updateSb.Append(" WHERE ");
-            TranslatePrimaryConditions(updateSb, trackedItem);
+            TranslatePrimaryConditions(updateSb, item);
             updateSb.Append(";");
 
             return updateSb.ToString();
         }
 
-        private static void TranslateUpdationIdValPairs(StringBuilder builder, TrackedEntity<TEntity> trackedEntity)
+        private static void TranslateUpdationIdValPairs(StringBuilder builder, EntityEntry<TEntity> entityEntry)
         {
             bool first = true;
-            foreach (CqlColumnInfo<TEntity> column in trackedEntity.ChangedColumns)
+            foreach (CqlColumnInfo<TEntity> column in entityEntry.ChangedColumns)
             {
                 if (!first)
                     builder.Append(", ");
@@ -137,14 +137,14 @@ namespace CqlSharp.Linq.Mutations
                 builder.Append(column.Name.Replace("\"", "\"\""));
                 builder.Append("\"=");
 
-                var value = column.ReadFunction(trackedEntity.Entity);
+                var value = column.ReadFunction(entityEntry.Entity);
                 builder.Append(TypeSystem.ToStringValue(value, column.CqlType));
 
                 first = false;
             }
         }
 
-        private static void TranslatePrimaryConditions(StringBuilder builder, TrackedEntity<TEntity> trackedEntity)
+        private static void TranslatePrimaryConditions(StringBuilder builder, EntityEntry<TEntity> entityEntry)
         {
             bool first = true;
             foreach (var keyColumn in Accessor.PartitionKeys.Concat(Accessor.ClusteringKeys))
@@ -155,7 +155,7 @@ namespace CqlSharp.Linq.Mutations
                 builder.Append("\"");
                 builder.Append(keyColumn.Name.Replace("\"", "\"\""));
                 builder.Append("\"=");
-                var value = keyColumn.ReadFunction(trackedEntity.Entity);
+                var value = keyColumn.ReadFunction(entityEntry.Entity);
                 builder.Append(TypeSystem.ToStringValue(value, keyColumn.CqlType));
 
                 first = false;
@@ -166,29 +166,29 @@ namespace CqlSharp.Linq.Mutations
 
         #region Insert functions
 
-        private static string BuildInsertStatement(TrackedEntity<TEntity> trackedItem)
+        private static string BuildInsertStatement(EntityEntry<TEntity> item)
         {
             var insertSb = new StringBuilder();
             insertSb.Append("INSERT INTO \"");
-            insertSb.Append(trackedItem.Table.Name.Replace("\"", "\"\""));
+            insertSb.Append(item.Table.Name.Replace("\"", "\"\""));
             insertSb.Append("\" (");
-            TranslateInsertionIds(insertSb, trackedItem);
+            TranslateInsertionIds(insertSb, item);
             insertSb.Append(")");
             insertSb.Append(" VALUES ");
             insertSb.Append("(");
-            TranslateInsertionValues(insertSb, trackedItem);
+            TranslateInsertionValues(insertSb, item);
             insertSb.Append(");");
 
             return insertSb.ToString();
         }
 
-        private static void TranslateInsertionIds(StringBuilder builder, TrackedEntity<TEntity> trackedEntity)
+        private static void TranslateInsertionIds(StringBuilder builder, EntityEntry<TEntity> entityEntry)
         {
             bool first = true;
             foreach (var column in Accessor.Columns)
             {
                 //skip null values
-                if (column.ReadFunction(trackedEntity.Entity) == null)
+                if (column.ReadFunction(entityEntry.Entity) == null)
                     continue;
 
                 if (!first)
@@ -202,13 +202,13 @@ namespace CqlSharp.Linq.Mutations
             }
         }
 
-        private static void TranslateInsertionValues(StringBuilder builder, TrackedEntity<TEntity> trackedEntity)
+        private static void TranslateInsertionValues(StringBuilder builder, EntityEntry<TEntity> entityEntry)
         {
             bool first = true;
             foreach (var column in Accessor.Columns)
             {
                 //skip null values
-                var value = column.ReadFunction(trackedEntity.Entity);
+                var value = column.ReadFunction(entityEntry.Entity);
                 if (value == null)
                     continue;
 

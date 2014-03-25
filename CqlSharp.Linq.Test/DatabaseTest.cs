@@ -318,8 +318,8 @@ namespace CqlSharp.Linq.Test
                 context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
                 var query = context.Values.Where(r => new[] { 701, 702, 703, 704 }.Contains(r.Id)).ToList();
 
-                TrackedEntity<MyValue> entry;
-                Assert.IsTrue(context.ChangeTracker.TryGetEntry(query[1], out entry));
+                EntityEntry<MyValue> entry = context.ChangeTracker.Entry(query[1]);
+                Assert.IsNotNull(entry);
 
                 Assert.AreEqual(EntityState.Unchanged, entry.State);
 
@@ -392,8 +392,8 @@ namespace CqlSharp.Linq.Test
                 Assert.IsTrue(added);
 
 
-                ITrackedEntity entry;
-                Assert.IsTrue(context.ChangeTracker.TryGetEntry(newValue, out entry));
+                IEntityEntry entry = context.ChangeTracker.Entry(newValue);
+                Assert.IsNotNull(entry);
                 Assert.AreEqual(EntityState.Added, entry.State);
 
                 context.SaveChanges();
@@ -420,8 +420,8 @@ namespace CqlSharp.Linq.Test
             {
                 var query = context.Values.Where(r => new[] { 701, 702, 703, 704 }.Contains(r.Id)).AsNoTracking().ToList();
 
-                TrackedEntity<MyValue> entry;
-                Assert.IsFalse(context.ChangeTracker.TryGetEntry(query[1], out entry));
+               
+                Assert.IsNull(context.ChangeTracker.Entry(query[1]));
             }
         }
 
@@ -434,13 +434,7 @@ namespace CqlSharp.Linq.Test
 
                 //query, and check if tracked
                 var query = context.Values.Where(r => new[] { 701, 702, 703, 704 }.Contains(r.Id)).ToList();
-                TrackedEntity<MyValue> entry;
-                Assert.IsFalse(context.ChangeTracker.TryGetEntry(query[1], out entry));
-
-                //find and check if tracked
-                var entity = context.Values.Find(1);
-                Assert.IsNotNull(entity);
-                Assert.IsFalse(context.ChangeTracker.TryGetEntry(entity, out entry));
+                Assert.IsNull(context.ChangeTracker.Entry(query[1]));
             }
         }
 
@@ -450,13 +444,11 @@ namespace CqlSharp.Linq.Test
             using (var context = new MyContext(ConnectionString))
             {
                 context.TrackChanges = false;
-                
+
                 //find and check if tracked
                 var entity = context.Values.Find(1);
                 Assert.IsNotNull(entity);
-
-                TrackedEntity<MyValue> entry;
-                Assert.IsFalse(context.ChangeTracker.TryGetEntry(entity, out entry));
+                Assert.IsNull(context.ChangeTracker.Entry(entity));
             }
         }
     }

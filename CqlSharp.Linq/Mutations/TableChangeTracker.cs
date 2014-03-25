@@ -32,12 +32,12 @@ namespace CqlSharp.Linq.Mutations
         private readonly CqlTable<TEntity> _table;
 
 
-        private readonly Dictionary<TEntity, TrackedEntity<TEntity>> _trackedEntities;
+        private readonly Dictionary<TEntity, EntityEntry<TEntity>> _trackedEntities;
 
         /// <summary>
         ///   The tracked objects stored by reference and by key
         /// </summary>
-        private readonly Dictionary<EntityKey<TEntity>, TrackedEntity<TEntity>> _trackedEntitiesByKey;
+        private readonly Dictionary<EntityKey<TEntity>, EntityEntry<TEntity>> _trackedEntitiesByKey;
 
 
         /// <summary>
@@ -47,8 +47,8 @@ namespace CqlSharp.Linq.Mutations
         {
             _table = table;
             _trackedEntities =
-                new Dictionary<TEntity, TrackedEntity<TEntity>>(ObjectReferenceEqualityComparer<TEntity>.Instance);
-            _trackedEntitiesByKey = new Dictionary<EntityKey<TEntity>, TrackedEntity<TEntity>>();
+                new Dictionary<TEntity, EntityEntry<TEntity>>(ObjectReferenceEqualityComparer<TEntity>.Instance);
+            _trackedEntitiesByKey = new Dictionary<EntityKey<TEntity>, EntityEntry<TEntity>>();
         }
 
         #region ITableChangeTracker Members
@@ -121,7 +121,7 @@ namespace CqlSharp.Linq.Mutations
             }
         }
 
-        IEnumerable<ITrackedEntity> ITableChangeTracker.Entries()
+        IEnumerable<IEntityEntry> ITableChangeTracker.Entries()
         {
             return Entries();
         }
@@ -149,7 +149,7 @@ namespace CqlSharp.Linq.Mutations
                     return false;
 
                 //create new entry
-                var entry = new TrackedEntity<TEntity>(_table, key, entity, default(TEntity), EntityState.Added);
+                var entry = new EntityEntry<TEntity>(_table, key, entity, default(TEntity), EntityState.Added);
 
                 //add the entry
                 _trackedEntities.Add(entity, entry);
@@ -181,7 +181,7 @@ namespace CqlSharp.Linq.Mutations
                     return false;
 
                 //create new entry
-                var entry = new TrackedEntity<TEntity>(_table, key, entity, entity.Clone(), EntityState.Unchanged);
+                var entry = new EntityEntry<TEntity>(_table, key, entity, entity.Clone(), EntityState.Unchanged);
 
                 //add the entry
                 _trackedEntities.Add(entity, entry);
@@ -200,7 +200,7 @@ namespace CqlSharp.Linq.Mutations
         {
             lock (_syncLock)
             {
-                TrackedEntity<TEntity> entry;
+                EntityEntry<TEntity> entry;
                 if (!_trackedEntities.TryGetValue(entity, out entry))
                     return false;
 
@@ -221,12 +221,12 @@ namespace CqlSharp.Linq.Mutations
         {
             lock (_syncLock)
             {
-                TrackedEntity<TEntity> entry;
+                EntityEntry<TEntity> entry;
                 if (!_trackedEntities.TryGetValue(entity, out entry))
                 {
                     //entity not tracked yet. Create entry.
                     var key = EntityKey<TEntity>.Create(entity);
-                    entry = new TrackedEntity<TEntity>(_table, key, entity,
+                    entry = new EntityEntry<TEntity>(_table, key, entity,
                                                        default(TEntity), EntityState.Deleted);
 
                     //add the entry
@@ -253,7 +253,7 @@ namespace CqlSharp.Linq.Mutations
                     return entity;
 
                 //check if entity with same key is already tracked
-                TrackedEntity<TEntity> entry;
+                EntityEntry<TEntity> entry;
                 if (_trackedEntitiesByKey.TryGetValue(new EntityKey<TEntity>(entity), out entry))
                 {
                     return entry.Entity;
@@ -277,7 +277,7 @@ namespace CqlSharp.Linq.Mutations
         {
             lock (_syncLock)
             {
-                TrackedEntity<TEntity> entry;
+                EntityEntry<TEntity> entry;
                 if (_trackedEntitiesByKey.TryGetValue(key, out entry))
                 {
                     entity = entry.Entity;
@@ -294,7 +294,7 @@ namespace CqlSharp.Linq.Mutations
             return _trackedEntities.Keys;
         }
 
-        public IEnumerable<TrackedEntity<TEntity>> Entries()
+        public IEnumerable<EntityEntry<TEntity>> Entries()
         {
             return _trackedEntities.Values;
         }
@@ -305,7 +305,7 @@ namespace CqlSharp.Linq.Mutations
         /// <param name="entity">The entity.</param>
         /// <param name="entry">The entry.</param>
         /// <returns></returns>
-        public bool TryGetEntry(TEntity entity, out TrackedEntity<TEntity> entry)
+        public bool TryGetEntry(TEntity entity, out EntityEntry<TEntity> entry)
         {
             lock (_syncLock)
             {
@@ -313,12 +313,12 @@ namespace CqlSharp.Linq.Mutations
             }
         }
 
-        bool ITableChangeTracker.TryGetEntry(object entity, out ITrackedEntity entry)
+        bool ITableChangeTracker.TryGetEntry(object entity, out IEntityEntry entry)
         {
-            TrackedEntity<TEntity> trackedEntity;
-            if (_trackedEntities.TryGetValue((TEntity)entity, out trackedEntity))
+            EntityEntry<TEntity> entityEntry;
+            if (_trackedEntities.TryGetValue((TEntity)entity, out entityEntry))
             {
-                entry = trackedEntity;
+                entry = entityEntry;
                 return true;
             }
 
