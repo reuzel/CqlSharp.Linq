@@ -173,6 +173,57 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
+        public void FindUpdateAndReload()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.Database.Log = cql => Debug.WriteLine("EXECUTE QUERY: " + cql);
+
+                //get entity
+                var value = context.Values.Find(101);
+                Assert.IsNotNull(value);
+
+                //get entry
+                var entry = context.ChangeTracker.Entry(value);
+                Assert.IsNotNull(entry);
+                
+                //change it
+                value.Value = "Hallo daar!";
+                Assert.IsTrue(context.ChangeTracker.DetectChanges());
+                Assert.AreEqual(EntityState.Modified, entry.State);
+
+                //reload
+                entry.Reload();
+                Assert.AreEqual(EntityState.Unchanged, entry.State);
+                Assert.IsFalse(context.ChangeTracker.HasChanges());
+            }
+        }
+
+        [TestMethod]
+        public void FindAndFindAgain()
+        {
+            int count = 0;
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                context.Database.Log = cql =>
+                {
+                    count++;
+                    Debug.WriteLine("EXECUTE QUERY: " + cql);
+                };
+
+                var value = context.Values.Find(100);
+                var value2 = context.Values.Find(100);
+
+                //check if same value is returned
+                Assert.AreSame(value, value2);
+
+                //only one query was executed
+                Assert.AreEqual(1, count);
+            }
+        }
+
+        [TestMethod]
         public void UpdateTwiceInSingleTransaction()
         {
             using (var context = new MyContext(ConnectionString))
@@ -420,7 +471,7 @@ namespace CqlSharp.Linq.Test
             {
                 var query = context.Values.Where(r => new[] { 701, 702, 703, 704 }.Contains(r.Id)).AsNoTracking().ToList();
 
-               
+
                 Assert.IsNull(context.ChangeTracker.Entry(query[1]));
             }
         }
@@ -439,16 +490,34 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
-        public void FindContextNoTracking()
+        public async Task FindContextNoTracking()
         {
+            int count = 0;
             using (var context = new MyContext(ConnectionString))
             {
                 context.TrackChanges = false;
 
+                context.Database.Log = cql =>
+                {
+                    count++;
+                    Debug.WriteLine("EXECUTE QUERY: " + cql);
+                };
+
                 //find and check if tracked
-                var entity = context.Values.Find(1);
+                var entity = await context.Values.FindAsync(1);
                 Assert.IsNotNull(entity);
                 Assert.IsNull(context.ChangeTracker.Entry(entity));
+
+                //find again and check if tracked
+                var entity2 = await context.Values.FindAsync(1);
+                Assert.IsNotNull(entity);
+                Assert.IsNull(context.ChangeTracker.Entry(entity2));
+
+                //expecting two different objects
+                Assert.AreNotSame(entity, entity2);
+
+                //expecting two queries
+                Assert.AreEqual(2, count);
             }
         }
     }

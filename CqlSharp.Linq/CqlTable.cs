@@ -19,6 +19,7 @@ using CqlSharp.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -72,9 +73,7 @@ namespace CqlSharp.Linq
             {
                 var accessor = ObjectAccessor<TEntity>.Instance;
 
-                if (!accessor.IsTableSet)
-                    throw new CqlLinqException("Name of the Table can not be derived for entityType " +
-                                               accessor.Type.FullName);
+                Debug.Assert(accessor.IsTableSet, "TEntity cannot be an anonymous type");
 
                 //if table metadata contains a keyspace, use it
                 if (accessor.IsKeySpaceSet)
@@ -106,8 +105,7 @@ namespace CqlSharp.Linq
         {
             get
             {
-                if (!_context.TrackChanges)
-                    return null;
+                Debug.Assert(_context.TrackChanges, "ChangeTracker requested while TrackChanges is false!");
 
                 if (_tracker == null)
                     _tracker = _context.ChangeTracker.GetTableChangeTracker<TEntity>();

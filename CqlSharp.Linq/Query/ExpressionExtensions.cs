@@ -53,6 +53,7 @@ namespace CqlSharp.Linq.Query
             return false;
         }
 
+/*
         public static IList<Expression> GetArrayElements(this Expression e)
         {
             var expressions = new List<Expression>();
@@ -95,5 +96,6 @@ namespace CqlSharp.Linq.Query
 
             return expressions;
         }
+*/
     }
 }

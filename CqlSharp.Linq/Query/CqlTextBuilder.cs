@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Query
 {
@@ -27,17 +27,7 @@ namespace CqlSharp.Linq.Query
     /// </summary>
     internal class CqlTextBuilder : CqlExpressionVisitor
     {
-        private readonly List<SelectStatementExpression> _selects = new List<SelectStatementExpression>();
         private readonly Dictionary<Expression, string> _translations = new Dictionary<Expression, string>();
-
-        /// <summary>
-        ///   Gets the selectStatement queries.
-        /// </summary>
-        /// <value> The selectStatement queries. </value>
-        public IEnumerable<string> SelectQueries
-        {
-            get { return _translations.Where(t => _selects.Contains(t.Key)).Select(t => t.Value); }
-        }
 
         /// <summary>
         ///   Builds selectStatement queries from the specified expression, and returns the first instance
@@ -89,7 +79,6 @@ namespace CqlSharp.Linq.Query
             builder.Append(";");
 
             _translations[selectStatement] = builder.ToString();
-            _selects.Add(selectStatement);
 
             return selectStatement;
         }
@@ -99,7 +88,7 @@ namespace CqlSharp.Linq.Query
             base.VisitSelectClause(selectClauseExpression);
 
             string translation;
-            switch ((CqlExpressionType) selectClauseExpression.NodeType)
+            switch ((CqlExpressionType)selectClauseExpression.NodeType)
             {
                 case CqlExpressionType.SelectAll:
                     translation = "*";
@@ -127,7 +116,7 @@ namespace CqlSharp.Linq.Query
 
             string value;
 
-            switch ((CqlExpressionType) selector.NodeType)
+            switch ((CqlExpressionType)selector.NodeType)
             {
                 case CqlExpressionType.IdentifierSelector:
                     value = "\"" + selector.Identifier.Replace("\"", "\"\"") + "\"";
@@ -157,7 +146,7 @@ namespace CqlSharp.Linq.Query
             var builder = new StringBuilder();
             builder.Append(_translations[relation.Selector]);
 
-            switch ((CqlExpressionType) relation.NodeType)
+            switch ((CqlExpressionType)relation.NodeType)
             {
                 case CqlExpressionType.Equal:
                     builder.Append("=");
@@ -200,7 +189,7 @@ namespace CqlSharp.Linq.Query
 
             var builder = new StringBuilder();
 
-            switch ((CqlExpressionType) term.NodeType)
+            switch ((CqlExpressionType)term.NodeType)
             {
                 case CqlExpressionType.Variable:
                     builder.Append("?");
@@ -260,7 +249,7 @@ namespace CqlSharp.Linq.Query
         {
             string value;
 
-            switch ((CqlExpressionType) ordering.NodeType)
+            switch ((CqlExpressionType)ordering.NodeType)
             {
                 case CqlExpressionType.OrderDescending:
                     value = _translations[ordering.Selector] + " DESC";

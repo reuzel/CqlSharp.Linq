@@ -33,5 +33,15 @@ namespace CqlSharp.Linq.Test
             var table = new CqlTable<AnnotatedTable>(new MyContext());
             Assert.AreEqual("linqtest.myvalue", table.Name, "Table name is wrong!");
         }
+        
+        [TestMethod]
+        public void CheckTableNameWhenKeyspaceSet()
+        {
+            var table = new CqlTable<MyValue>(new MyContext());
+            table.Context.Database.Keyspace = "linqtest2";
+            Assert.AreEqual("linqtest2.myvalue", table.Name, "Table name is wrong!");
+        }
+
+       
     }
 }

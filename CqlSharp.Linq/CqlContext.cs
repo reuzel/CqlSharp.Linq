@@ -167,17 +167,6 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        ///   Tries the get table for the given entityType.
-        /// </summary>
-        /// <param name="entityType"> The entity type. </param>
-        /// <param name="table"> The table. </param>
-        /// <returns> </returns>
-        internal bool TryGetTable(Type entityType, out ICqlTable table)
-        {
-            return _tables.TryGetValue(entityType, out table);
-        }
-
-        /// <summary>
         ///   Gets the mutation tracker.
         /// </summary>
         /// <value> The mutation tracker that keeps track of changes to all entities</value>

@@ -28,6 +28,5 @@ namespace CqlSharp.Linq.Mutations
         void AcceptAllChanges();
 
         IEnumerable<IEntityEntry> Entries();
-        bool TryGetEntry(object entity, out IEntityEntry entry);
     }
 }

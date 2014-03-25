@@ -312,18 +312,6 @@ namespace CqlSharp.Linq.Mutations
                 return _trackedEntities.TryGetValue(entity, out entry);
             }
         }
-
-        bool ITableChangeTracker.TryGetEntry(object entity, out IEntityEntry entry)
-        {
-            EntityEntry<TEntity> entityEntry;
-            if (_trackedEntities.TryGetValue((TEntity)entity, out entityEntry))
-            {
-                entry = entityEntry;
-                return true;
-            }
-
-            entry = null;
-            return false;
-        }
+        
     }
 }
