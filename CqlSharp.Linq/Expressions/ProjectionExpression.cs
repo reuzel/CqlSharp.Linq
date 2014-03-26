@@ -26,14 +26,16 @@ namespace CqlSharp.Linq.Expressions
         private readonly Expression _projection;
         private readonly AggregateFunction _aggregator;
         private readonly SelectStatementExpression _select;
+        private readonly int? _pageSize;
+        private readonly CqlConsistency? _consistency;
 
-
-        public ProjectionExpression(SelectStatementExpression select, Expression projection, bool canTrackChanges,
-                                    AggregateFunction aggregator)
+        public ProjectionExpression(SelectStatementExpression @select, Expression projection, AggregateFunction aggregator, bool canTrackChanges, CqlConsistency? consistency, int? pageSize)
         {
             _select = @select;
             _projection = projection;
             _canTrackChanges = canTrackChanges;
+            _consistency = consistency;
+            _pageSize = pageSize;
             _aggregator = aggregator;
         }
 
@@ -49,7 +51,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) CqlExpressionType.Projection; }
+            get { return (ExpressionType)CqlExpressionType.Projection; }
         }
 
         public AggregateFunction Aggregator
@@ -60,6 +62,16 @@ namespace CqlSharp.Linq.Expressions
         public bool CanTrackChanges
         {
             get { return _canTrackChanges; }
+        }
+
+        public CqlConsistency? Consistency
+        {
+            get { return _consistency; }
+        }
+
+        public int? PageSize
+        {
+            get { return _pageSize; }
         }
 
         protected override Expression Accept(ExpressionVisitor visitor)
@@ -76,11 +88,11 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            var selector = (SelectStatementExpression) visitor.Visit(_select);
+            var selector = (SelectStatementExpression)visitor.Visit(_select);
             var projector = visitor.Visit(_projection);
 
             if (selector != _select || projector != _projection)
-                return new ProjectionExpression(selector, projector, _canTrackChanges, _aggregator);
+                return new ProjectionExpression(selector, projector, _aggregator, _canTrackChanges, _consistency, _pageSize);
 
             return this;
         }

@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Query
 {
@@ -26,7 +26,7 @@ namespace CqlSharp.Linq.Query
         public ProjectionExpression UpdateSelect(ProjectionExpression projection, Expression selectExpression)
         {
             //get the lambda expression of the select method
-            var lambda = (LambdaExpression) selectExpression.StripQuotes();
+            var lambda = (LambdaExpression)selectExpression.StripQuotes();
 
             //if the lambda, is the identity lamda, simply return
             if (lambda.IsIdentityLambda())
@@ -55,17 +55,17 @@ namespace CqlSharp.Linq.Query
                                                           select.Limit,
                                                           select.AllowFiltering);
 
-            return new ProjectionExpression(newSelect, newProjection, false, projection.Aggregator);
+            return new ProjectionExpression(newSelect, newProjection, projection.Aggregator, false, projection.Consistency, projection.PageSize);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             Type classType = node.Method.DeclaringType;
-            if (classType == typeof (CqlFunctions))
+            if (classType == typeof(CqlFunctions))
             {
                 bool changed;
                 var args = node.Arguments.VisitAll(this, out changed);
-                if (args.Any(arg => arg.GetType() != typeof (SelectorExpression)))
+                if (args.Any(arg => arg.GetType() != typeof(SelectorExpression)))
                     throw new CqlLinqException(
                         string.Format("Argument to {0} function is not recognized as a column identifier",
                                       node.Method.Name));

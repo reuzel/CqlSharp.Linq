@@ -26,7 +26,9 @@ namespace CqlSharp.Linq
     public static class CqlQueryable
     {
         private static readonly MethodInfo AllowFilteringMethod = typeof(CqlQueryable).GetMethod("AllowFiltering");
-        private static readonly MethodInfo AsNoTrackinggMethod = typeof(CqlQueryable).GetMethod("AsNoTracking");
+        private static readonly MethodInfo AsNoTrackingMethod = typeof(CqlQueryable).GetMethod("AsNoTracking");
+        private static readonly MethodInfo WithConsistencyMethod = typeof(CqlQueryable).GetMethod("WithConsistency");
+        private static readonly MethodInfo WithPageSizeMethod = typeof(CqlQueryable).GetMethod("WithPageSize");
 
         /// <summary>
         ///   Enables filtering of queries, using CQL's ALLOW FILTERING clause.
@@ -55,9 +57,47 @@ namespace CqlSharp.Linq
         {
             if (source == null) throw new ArgumentNullException("source");
 
-            var method = AsNoTrackinggMethod.MakeGenericMethod(new[] { typeof(T) });
+            var method = AsNoTrackingMethod.MakeGenericMethod(new[] { typeof(T) });
             var call = Expression.Call(method, source.Expression);
             return source.Provider.CreateQuery<T>(call);
         }
+
+        /// <summary>
+        /// Sets the required consistency level for the given query
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="consistency">The consistency.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException">source</exception>
+        public static IQueryable<T> WithConsistency<T>(this IQueryable<T> source, CqlConsistency consistency)
+        {
+            if (source == null) throw new ArgumentNullException("source");
+
+            var method = WithConsistencyMethod.MakeGenericMethod(new[] { typeof(T) });
+            var call = Expression.Call(method, source.Expression, Expression.Constant(consistency));
+            return source.Provider.CreateQuery<T>(call);
+        }
+
+
+        /// <summary>
+        /// Makes that the results of this query are retrieved in batches of the given size
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="size">The required batch size.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException">source</exception>
+        /// <exception cref="System.ArgumentException">batch size has to be larger than 0</exception>
+        public static IQueryable<T> WithPageSize<T>(this IQueryable<T> source, int size)
+        {
+            if (source == null) throw new ArgumentNullException("source");
+            if (size <= 0) throw new ArgumentException("Page size has to be larger than 0", "size");
+
+            var method = WithPageSizeMethod.MakeGenericMethod(new[] { typeof(T) });
+            var call = Expression.Call(method, source.Expression, Expression.Constant(size));
+            return source.Provider.CreateQuery<T>(call);
+        }
+
     }
 }

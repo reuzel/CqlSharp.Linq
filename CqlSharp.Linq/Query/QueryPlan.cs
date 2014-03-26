@@ -25,19 +25,39 @@ namespace CqlSharp.Linq.Query
     internal class QueryPlan
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="QueryPlan" /> class.
+        /// Initializes a new instance of the <see cref="QueryPlan" /> class.
         /// </summary>
-        /// <param name="cql"> The CQL query </param>
-        /// <param name="projector"> The projector of the results </param>
-        /// <param name="canTrackChanges"> </param>
-        /// <param name="aggregateFunction"> The result function. </param>
-        public QueryPlan(string cql, Delegate projector, bool canTrackChanges, AggregateFunction aggregateFunction)
+        /// <param name="cql">The CQL query</param>
+        /// <param name="projector">The projector of the results</param>
+        /// <param name="aggregateFunction">The result function.</param>
+        /// <param name="canTrackChanges">if set to <c>true</c> [can track changes].</param>
+        /// <param name="consistency">The consistency.</param>
+        /// <param name="batchSize">Size of the batch.</param>
+        public QueryPlan(string cql, Delegate projector, AggregateFunction aggregateFunction, bool canTrackChanges, CqlConsistency? consistency, int? batchSize)
         {
+            Consistency = consistency;
+            PageSize = batchSize;
             Cql = cql;
             Projector = projector;
             CanTrackChanges = canTrackChanges;
             Aggregator = aggregateFunction;
         }
+
+        /// <summary>
+        /// Gets the consistency.
+        /// </summary>
+        /// <value>
+        /// The consistency.
+        /// </value>
+        public CqlConsistency? Consistency { get; private set; }
+
+        /// <summary>
+        /// Gets the size of the batch.
+        /// </summary>
+        /// <value>
+        /// The size of the batch.
+        /// </value>
+        public int? PageSize { get; private set; }
 
         /// <summary>
         ///   Gets the CQL query string.
@@ -95,7 +115,7 @@ namespace CqlSharp.Linq.Query
                 reader = (IProjectionReader)Activator.CreateInstance(
                     typeof(TrackingReader<>).MakeGenericType(projectionType),
                     BindingFlags.Instance | BindingFlags.Public, null,
-                    new object[] { context, Cql, Projector },
+                    new object[] { context, this },
                     null);
             }
             else
@@ -103,7 +123,7 @@ namespace CqlSharp.Linq.Query
                 reader = (IProjectionReader)Activator.CreateInstance(
                     typeof(ProjectionReader<>).MakeGenericType(projectionType),
                     BindingFlags.Instance | BindingFlags.Public, null,
-                    new object[] { context, Cql, Projector },
+                    new object[] { context, this },
                     null);
             }
 

@@ -71,7 +71,7 @@ namespace CqlSharp.Linq.Query
 
             var projection = Expression.MemberInit(Expression.New(table.EntityType), bindings);
 
-            return new ProjectionExpression(selectStmt, projection, true, null);
+            return new ProjectionExpression(selectStmt, projection, null, true, null, null);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression call)
@@ -92,16 +92,50 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.Limit,
                                                                        true);
 
-                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges,
-                                                            source.Aggregator);
+                            return new ProjectionExpression(@select,
+                                                            source.Projection,
+                                                            source.Aggregator,
+                                                            source.CanTrackChanges,
+                                                            source.Consistency,
+                                                            source.PageSize);
                         }
 
                     case "AsNoTracking":
                         {
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
 
-                            return new ProjectionExpression(source.Select, source.Projection, false,
-                                                            source.Aggregator);
+                            return new ProjectionExpression(source.Select,
+                                                            source.Projection,
+                                                            source.Aggregator,
+                                                            false,
+                                                            source.Consistency,
+                                                            source.PageSize);
+                        }
+
+                    case "WithPageSize":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+                            var size = (int)((ConstantExpression)call.Arguments[1]).Value;
+
+                            return new ProjectionExpression(source.Select,
+                                                            source.Projection,
+                                                            source.Aggregator,
+                                                            source.CanTrackChanges,
+                                                            source.Consistency,
+                                                            size);
+                        }
+
+                    case "WithConsistency":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+                            var consistency = (CqlConsistency)((ConstantExpression)call.Arguments[1]).Value;
+
+                            return new ProjectionExpression(source.Select,
+                                                            source.Projection,
+                                                            source.Aggregator,
+                                                            source.CanTrackChanges,
+                                                            consistency,
+                                                            source.PageSize);
                         }
                 }
             }
@@ -147,7 +181,12 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //update projection
-                            return new ProjectionExpression(select, source.Projection, false, source.Aggregator);
+                            return new ProjectionExpression(@select,
+                                                            source.Projection,
+                                                            source.Aggregator,
+                                                            false,
+                                                            source.Consistency,
+                                                            source.PageSize);
                         }
 
                     case "Take":
@@ -169,8 +208,12 @@ namespace CqlSharp.Linq.Query
                                                                        take,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges,
-                                                            source.Aggregator);
+                            return new ProjectionExpression(@select,
+                                                            source.Projection,
+                                                            source.Aggregator,
+                                                            source.CanTrackChanges,
+                                                            source.Consistency,
+                                                            source.PageSize);
                         }
 
                     case "First":
@@ -202,7 +245,12 @@ namespace CqlSharp.Linq.Query
                                                            ? Enumerable.First
                                                            : (AggregateFunction)Enumerable.FirstOrDefault;
 
-                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, processor);
+                            return new ProjectionExpression(@select,
+                                                            source.Projection,
+                                                            processor,
+                                                            source.CanTrackChanges,
+                                                            source.Consistency,
+                                                            null);
                         }
 
                     case "Single":
@@ -238,7 +286,12 @@ namespace CqlSharp.Linq.Query
                                                            : (AggregateFunction)Enumerable.SingleOrDefault;
 
 
-                            return new ProjectionExpression(select, source.Projection, source.CanTrackChanges, processor);
+                            return new ProjectionExpression(@select,
+                                                             source.Projection,
+                                                             processor,
+                                                             source.CanTrackChanges,
+                                                             source.Consistency,
+                                                             null);
                         }
 
                     case "Any":
@@ -264,7 +317,7 @@ namespace CqlSharp.Linq.Query
                                                                        1,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, source.Projection, false, enm => enm.Any());
+                            return new ProjectionExpression(@select, source.Projection, enm => enm.Any(), false, source.Consistency, null);
                         }
 
                     case "Count":
@@ -295,8 +348,7 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.Limit,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(select, new SelectorExpression("count", typeof(long)),
-                                                            false, Enumerable.Single);
+                            return new ProjectionExpression(@select, new SelectorExpression("count", typeof(long)), Enumerable.Single, false, source.Consistency, null);
                         }
 
                     case "OrderBy":

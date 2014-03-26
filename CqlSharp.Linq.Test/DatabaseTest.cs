@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Data;
 using CqlSharp.Linq.Mutations;
 using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -131,6 +132,45 @@ namespace CqlSharp.Linq.Test
 
                 Assert.AreEqual(4, values.Count, "Unexpected number of results");
                 for (int i = 1; i <= 4; i++)
+                {
+                    Assert.IsTrue(values.Any(v => v.Id == i), "Missing value " + i);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void WhereContainsWithConsistency()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var values = context.Values.Where(r => new[] { 1, 2, 3, 4 }.Contains(r.Id)).WithConsistency(CqlConsistency.One).ToList();
+
+                Assert.AreEqual(4, values.Count, "Unexpected number of results");
+                for (int i = 1; i <= 4; i++)
+                {
+                    Assert.IsTrue(values.Any(v => v.Id == i), "Missing value " + i);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void WhereContainsWithPageSize()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                if(context.Database.Connection.State==ConnectionState.Closed)
+                    context.Database.Connection.Open();
+
+                if (context.Database.Connection.ServerVersion.CompareTo("2.0.4") < 0)
+                {
+                    Debug.WriteLine("Cassandra bug in place: https://issues.apache.org/jira/browse/CASSANDRA-6464");
+                    return;
+                }
+
+                var values = context.Values.Where(r => new[] { 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21 }.Contains(r.Id)).WithPageSize(10).ToList();
+
+                Assert.AreEqual(21, values.Count, "Unexpected number of results");
+                for (int i = 1; i <= 21; i++)
                 {
                     Assert.IsTrue(values.Any(v => v.Id == i), "Missing value " + i);
                 }

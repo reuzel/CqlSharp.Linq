@@ -58,6 +58,10 @@ namespace CqlSharp.Linq.Query
             Debug.WriteLine("Cleaned Expression: " + cleanedExpression);
             Debug.WriteLine("Generated CQL: " + cql);
             Debug.WriteLine("Will track changes: " + translation.CanTrackChanges);
+            if (translation.Consistency.HasValue)
+                Debug.WriteLine("With Consistency: " + translation.Consistency);
+            if (translation.PageSize.HasValue)
+                Debug.WriteLine("With PageSize: " + translation.PageSize);
             Debug.WriteLine("Generated Projector: " + projector);
             Debug.WriteLine("Result processor: " +
                             (translation.Aggregator != null
@@ -65,7 +69,7 @@ namespace CqlSharp.Linq.Query
                                  : "<none>"));
 
             //return translation results
-            return new QueryPlan(cql, projector.Compile(), translation.CanTrackChanges, translation.Aggregator);
+            return new QueryPlan(cql, projector.Compile(), translation.Aggregator, translation.CanTrackChanges, translation.Consistency, translation.PageSize);
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)

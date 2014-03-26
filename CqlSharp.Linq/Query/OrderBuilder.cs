@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Query
 {
@@ -25,7 +25,7 @@ namespace CqlSharp.Linq.Query
                                                 bool ascending)
         {
             //get the lambda expression of the select method
-            var lambda = (LambdaExpression) keySelectExpression.StripQuotes();
+            var lambda = (LambdaExpression)keySelectExpression.StripQuotes();
 
             //map the arguments of the lambda expression to the existing projection
             MapLambdaParameters(lambda, projection.Projection);
@@ -34,7 +34,7 @@ namespace CqlSharp.Linq.Query
             var key = Visit(lambda.Body);
 
             //check if we are dealing with a column
-            if ((CqlExpressionType) key.NodeType != CqlExpressionType.IdentifierSelector)
+            if ((CqlExpressionType)key.NodeType != CqlExpressionType.IdentifierSelector)
                 throw new CqlLinqException("Select key in OrderBy does not map to table column");
 
             //get a reference to the select clause
@@ -42,7 +42,7 @@ namespace CqlSharp.Linq.Query
 
             //add the ordering to the list of orderBy clauses
             var ordering = new List<OrderingExpression>(select.OrderBy);
-            ordering.Add(new OrderingExpression((SelectorExpression) key,
+            ordering.Add(new OrderingExpression((SelectorExpression)key,
                                                 ascending
                                                     ? CqlExpressionType.OrderAscending
                                                     : CqlExpressionType.OrderDescending));
@@ -55,8 +55,8 @@ namespace CqlSharp.Linq.Query
                                                           select.Limit,
                                                           select.AllowFiltering);
 
-            return new ProjectionExpression(newSelect, projection.Projection, projection.CanTrackChanges,
-                                            projection.Aggregator);
+            return new ProjectionExpression(newSelect, projection.Projection,
+                                            projection.Aggregator, projection.CanTrackChanges, projection.Consistency, projection.PageSize);
         }
     }
 }

@@ -25,29 +25,25 @@ namespace CqlSharp.Linq.Query
     internal class TrackingReader<TEntity> : IEnumerable<TEntity>, IProjectionReader where TEntity : class, new()
     {
         private readonly CqlContext _context;
-        private readonly string _cql;
-        private readonly Func<CqlDataReader, TEntity> _projector;
+        private QueryPlan _plan;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
+        /// Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
         /// </summary>
-        /// <param name="context"> The context. </param>
-        /// <param name="cql"> The CQL. </param>
-        /// <param name="projector"> The projector. </param>
+        /// <param name="context">The context.</param>
+        /// <param name="plan">The plan.</param>
         /// <exception cref="System.ArgumentNullException">context
-        ///   or
-        ///   cql
-        ///   or
-        ///   projector</exception>
-        public TrackingReader(CqlContext context, string cql, Func<CqlDataReader, TEntity> projector)
+        /// or
+        /// cql
+        /// or
+        /// projector</exception>
+        public TrackingReader(CqlContext context, QueryPlan plan)
         {
             Debug.Assert(context != null, "Context may not be null");
-            Debug.Assert(cql != null, "Cql may not be null");
-            Debug.Assert(projector != null, "projector may not be null");
+            Debug.Assert(plan != null, "QueryPlan may not be null");
 
             _context = context;
-            _cql = cql;
-            _projector = projector;
+            _plan = plan;
         }
 
         #region IEnumerable<TEntity> Members
@@ -65,18 +61,26 @@ namespace CqlSharp.Linq.Query
                 connection.Open();
 
             //log query
-            _context.Database.LogQuery(_cql);
+            _context.Database.LogQuery(_plan.Cql);
 
-            var command = new CqlCommand(connection, _cql);
+            var command = new CqlCommand(connection, _plan.Cql);
 
             if (_context.Database.CommandTimeout.HasValue)
                 command.CommandTimeout = _context.Database.CommandTimeout.Value;
+
+            if (_plan.Consistency.HasValue)
+                command.Consistency = _plan.Consistency.Value;
+
+            if (_plan.PageSize.HasValue)
+                command.PageSize = _plan.PageSize.Value;
+
+            var projector = (Func<CqlDataReader, TEntity>)_plan.Projector;
 
             using (var reader = command.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    var value = _projector(reader);
+                    var value = projector(reader);
                     yield return tracker.GetOrAttach(value);
                 }
             }
