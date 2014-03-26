@@ -48,7 +48,7 @@ namespace CqlSharp.Linq.Query
             builder.Append("SELECT ");
             builder.Append(_translations[selectStatement.SelectClause]);
             builder.Append(" FROM \"");
-            builder.Append(selectStatement.TableName.Replace("\"", "\"\""));
+            builder.Append(selectStatement.TableName.Replace("\"", "\"\"").Replace(".","\".\""));
             builder.Append("\"");
 
             if (selectStatement.WhereClause != null && selectStatement.WhereClause.Any())

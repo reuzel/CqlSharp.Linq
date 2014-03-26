@@ -132,9 +132,9 @@ namespace CqlSharp.Linq
         /// <param name="entity"> The entity. </param>
         /// <param name="keyOnly"> clones the key values only </param>
         /// <returns> </returns>
-        internal static TEntity Clone<TEntity>(this TEntity entity, bool keyOnly = false)
+        internal static TEntity Clone<TEntity>(this TEntity entity, bool keyOnly = false) where TEntity:class, new()
         {
-            var clone = Activator.CreateInstance<TEntity>();
+            var clone = new TEntity();
             entity.CopyTo(clone, keyOnly);
             return clone;
         }
