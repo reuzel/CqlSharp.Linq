@@ -83,7 +83,7 @@ namespace CqlSharp.Linq.Mutations
         /// <value> The object. </value>
         public TEntity Original
         {
-            get { return _original.Clone(); }
+            get { return EntityHelper<TEntity>.Instance.Clone(_original); }
             private set { _original = value; }
         }
 
@@ -237,7 +237,7 @@ namespace CqlSharp.Linq.Mutations
                     "The new original values represent an different entity than the one tracked. The key values do not match",
                     "newOriginal");
 
-            Original = newOriginal.Clone();
+            Original = EntityHelper<TEntity>.Instance.Clone(newOriginal);
         }
 
         /// <summary>
@@ -251,7 +251,7 @@ namespace CqlSharp.Linq.Mutations
                     "The new object values represent an different entity than the one tracked. The key values do not match",
                     "newValues");
 
-            newValues.CopyTo(Entity);
+            EntityHelper<TEntity>.Instance.CopyTo(newValues, Entity);
         }
 
         /// <summary>

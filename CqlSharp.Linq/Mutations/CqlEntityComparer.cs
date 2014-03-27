@@ -115,18 +115,7 @@ namespace CqlSharp.Linq.Mutations
             if (obj == null)
                 throw new ArgumentNullException("obj");
 
-            int hashCode = 1;
-
-            var accessor = ObjectAccessor<TEntity>.Instance;
-            // ReSharper disable LoopCanBeConvertedToQuery
-            foreach (var column in accessor.PartitionKeys.Concat(accessor.ClusteringKeys))
-            {
-                var value = column.ReadFunction(obj);
-                hashCode = hashCode*31 + (value == null ? 0 : value.GetHashCode());
-            }
-            // ReSharper restore LoopCanBeConvertedToQuery
-
-            return hashCode;
+            return EntityHelper<TEntity>.Instance.GetHashCode(obj);
         }
 
         #endregion

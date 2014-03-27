@@ -45,7 +45,7 @@ namespace CqlSharp.Linq.Test
         public void NoWhereOrSelect()
         {
             TestUtils.QueryFunc query = context => context.GetTable<AnnotatedTable>().ToList();
-            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"linqtest.myvalue\";");
+            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"linqtest\".\"myvalue\";");
         }
 
         [TestMethod]

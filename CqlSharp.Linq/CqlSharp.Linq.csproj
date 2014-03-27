@@ -63,6 +63,7 @@
     <Compile Include="ICqlTable.cs" />
     <Compile Include="Mutations\CqlBuilder.cs" />
     <Compile Include="Mutations\CqlEntityComparer.cs" />
+    <Compile Include="Mutations\EntityHelper.cs" />
     <Compile Include="Mutations\EntityKey.cs" />
     <Compile Include="Mutations\IEntityKey.cs" />
     <Compile Include="Mutations\ITableChangeTracker.cs" />

@@ -15,6 +15,7 @@
 
 using CqlSharp.Serialization;
 using System;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CqlSharp.Linq.Mutations
@@ -31,12 +32,20 @@ namespace CqlSharp.Linq.Mutations
         private readonly TEntity _entity;
 
         /// <summary>
+        /// The hash code for this key. Cached to optimize performance
+        /// </summary>
+        private readonly int _hashCode;
+
+        /// <summary>
         ///   Initializes a new instance of the <see cref="EntityKey{TEntity}" /> struct.
         /// </summary>
         /// <param name="entity"> The entity containing the key values. </param>
         internal EntityKey(TEntity entity)
         {
+            Debug.Assert(entity != null);
+
             _entity = entity;
+            _hashCode = CqlEntityComparer<TEntity>.Instance.GetHashCode(_entity);
         }
 
         /// <summary>
@@ -58,8 +67,8 @@ namespace CqlSharp.Linq.Mutations
         bool IEntityKey.IsKeyOf(object entity)
         {
             if (entity == null) return false;
-            if (entity.GetType() != typeof (TEntity)) return false;
-            return IsKeyOf((TEntity) entity);
+            if (entity.GetType() != typeof(TEntity)) return false;
+            return IsKeyOf((TEntity)entity);
         }
 
         /// <summary>
@@ -78,7 +87,7 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. </returns>
         int IEntityKey.GetHashCode()
         {
-            return GetHashCode();
+            return _hashCode;
         }
 
         #endregion
@@ -91,7 +100,9 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> </returns>
         internal static EntityKey<TEntity> Create(TEntity entity)
         {
-            var keyValues = entity.Clone(keyOnly: true);
+            Debug.Assert(entity != null);
+
+            var keyValues = EntityHelper<TEntity>.Instance.CloneKey(entity);
             return new EntityKey<TEntity>(keyValues);
         }
 
@@ -134,6 +145,7 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> </returns>
         public bool IsKeyOf(TEntity entity)
         {
+            if (entity == null) return false;
             return CqlEntityComparer<TEntity>.Instance.Equals(entity, _entity);
         }
 
@@ -146,7 +158,8 @@ namespace CqlSharp.Linq.Mutations
         {
             if (obj == null) return false;
             if (!(obj is EntityKey<TEntity>)) return false;
-            return Equals((EntityKey<TEntity>) obj);
+
+            return Equals((EntityKey<TEntity>)obj);
         }
 
         /// <summary>
@@ -156,11 +169,8 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> <c>true</c> if the specified <see cref="EntityKey{TEntity}" /> is equal to this instance; otherwise, <c>false</c> . </returns>
         public bool Equals(EntityKey<TEntity> obj)
         {
-            //true if both are default object keys
-            if (_entity == null && obj._entity == null) return true;
-
-            //false if only one is object key
-            if (_entity == null || obj._entity == null) return false;
+            //false if hashCodes don't match
+            if (_hashCode != obj._hashCode) return false;
 
             //check data with the comparer
             return CqlEntityComparer<TEntity>.Instance.Equals(_entity, obj._entity);
@@ -172,7 +182,7 @@ namespace CqlSharp.Linq.Mutations
         /// <returns> A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. </returns>
         public override int GetHashCode()
         {
-            return CqlEntityComparer<TEntity>.Instance.GetHashCode(_entity);
+            return _hashCode;
         }
 
         public static bool operator ==(EntityKey<TEntity> first, EntityKey<TEntity> second)

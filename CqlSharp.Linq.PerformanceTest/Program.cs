@@ -34,7 +34,7 @@ namespace CqlSharp.Linq.PerformanceTest
             {
                 var allRecords = context.Values.WithPageSize(1000).ToList();
                 if (allRecords.Count == 0)
-                    throw new Exception("not results!");
+                    throw new Exception("no results!");
             }
         }
 

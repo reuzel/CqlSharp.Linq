@@ -181,7 +181,8 @@ namespace CqlSharp.Linq.Mutations
                     return false;
 
                 //create new entry
-                var entry = new EntityEntry<TEntity>(_table, key, entity, entity.Clone(), EntityState.Unchanged);
+                var original = EntityHelper<TEntity>.Instance.Clone(entity);
+                var entry = new EntityEntry<TEntity>(_table, key, entity, original, EntityState.Unchanged);
 
                 //add the entry
                 _trackedEntities.Add(entity, entry);
