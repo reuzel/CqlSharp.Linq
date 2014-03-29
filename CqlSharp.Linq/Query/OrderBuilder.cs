@@ -21,6 +21,10 @@ namespace CqlSharp.Linq.Query
 {
     internal class OrderBuilder : BuilderBase
     {
+        public OrderBuilder(Dictionary<Expression, Expression> parameterMap)
+            : base(parameterMap)
+        { }
+
         public ProjectionExpression UpdateOrder(ProjectionExpression projection, Expression keySelectExpression,
                                                 bool ascending)
         {

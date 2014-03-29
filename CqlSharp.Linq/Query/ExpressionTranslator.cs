@@ -26,6 +26,8 @@ namespace CqlSharp.Linq.Query
     /// </summary>
     internal class ExpressionTranslator : CqlExpressionVisitor
     {
+        private readonly Dictionary<Expression, Expression> _parameterMap =  new Dictionary<Expression, Expression>(); 
+        
         public ProjectionExpression Translate(Expression expression)
         {
             return (ProjectionExpression)Visit(expression);
@@ -72,6 +74,13 @@ namespace CqlSharp.Linq.Query
             var projection = Expression.MemberInit(Expression.New(table.EntityType), bindings);
 
             return new ProjectionExpression(selectStmt, projection, null, true, null, null);
+        }
+
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            var lamda = (LambdaExpression)node.StripQuotes();
+
+            return base.VisitLambda<T>(node);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression call)
@@ -146,7 +155,7 @@ namespace CqlSharp.Linq.Query
                     case "Select":
                         {
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
-                            return new SelectBuilder().UpdateSelect(source, call.Arguments[1]);
+                            return new SelectBuilder(_parameterMap).UpdateSelect(source, call.Arguments[1]);
                         }
 
                     case "Where":
@@ -157,7 +166,7 @@ namespace CqlSharp.Linq.Query
                                 throw new CqlLinqException(
                                     "A Where statement may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the Take after the Where statement.");
 
-                            return new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+                            return new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
                         }
 
                     case "Distinct":
@@ -228,7 +237,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "A First statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //add limit to return single result
@@ -265,7 +274,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "A Single statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //set the limit to min of current limit or 2
@@ -305,7 +314,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "An Any statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //add limit to return single result
@@ -336,7 +345,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "A Count statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //remove the select clause and replace with count(*)
@@ -369,7 +378,7 @@ namespace CqlSharp.Linq.Query
                             bool ascending = call.Method.Name.Equals("OrderBy") ||
                                              call.Method.Name.Equals("ThenBy");
 
-                            return new OrderBuilder().UpdateOrder(source, call.Arguments[1], ascending);
+                            return new OrderBuilder(_parameterMap).UpdateOrder(source, call.Arguments[1], ascending);
                         }
 
                     default:

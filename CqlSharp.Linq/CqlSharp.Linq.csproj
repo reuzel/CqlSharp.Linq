@@ -76,6 +76,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CqlQueryable.cs" />
     <Compile Include="Query\BuilderBase.cs" />
+    <Compile Include="Query\CompiledQuery.cs" />
     <Compile Include="Query\CqlQuery.cs" />
     <Compile Include="Query\CqlQueryProvider.cs" />
     <Compile Include="Query\CqlTextBuilder.cs" />

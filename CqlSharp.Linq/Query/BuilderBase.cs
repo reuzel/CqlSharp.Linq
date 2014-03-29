@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Query
 {
@@ -24,9 +24,9 @@ namespace CqlSharp.Linq.Query
     {
         private readonly Dictionary<Expression, Expression> _map;
 
-        protected BuilderBase()
+        protected BuilderBase(Dictionary<Expression, Expression> parameterMap)
         {
-            _map = new Dictionary<Expression, Expression>();
+            _map = parameterMap;
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace CqlSharp.Linq.Query
             {
                 case ExpressionType.MemberInit:
                     //object/class initialization of a known class
-                    var initExpression = (MemberInitExpression) source;
+                    var initExpression = (MemberInitExpression)source;
 
                     //search for the assignment of a value to the given member and return the value if found
                     foreach (var binding in initExpression.Bindings)
@@ -75,13 +75,13 @@ namespace CqlSharp.Linq.Query
                         if (binding.BindingType == MemberBindingType.Assignment &&
                             MembersMatch(binding.Member, node.Member))
                         {
-                            return ((MemberAssignment) binding).Expression;
+                            return ((MemberAssignment)binding).Expression;
                         }
                     }
                     break;
                 case ExpressionType.New:
                     //object/class initialization of a anonymous class
-                    var nex = (NewExpression) source;
+                    var nex = (NewExpression)source;
 
                     //search for the assignment of a value to the given member and return the value if found
                     for (int i = 0, n = nex.Members.Count; i < n; i++)
@@ -109,12 +109,12 @@ namespace CqlSharp.Linq.Query
 
             if (a is MethodInfo && b is PropertyInfo)
             {
-                return a == ((PropertyInfo) b).GetGetMethod();
+                return a == ((PropertyInfo)b).GetGetMethod();
             }
 
             if (a is PropertyInfo && b is MethodInfo)
             {
-                return ((PropertyInfo) a).GetGetMethod() == b;
+                return ((PropertyInfo)a).GetGetMethod() == b;
             }
 
             return false;

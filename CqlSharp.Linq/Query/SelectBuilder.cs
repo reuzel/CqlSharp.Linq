@@ -23,6 +23,10 @@ namespace CqlSharp.Linq.Query
 {
     internal class SelectBuilder : BuilderBase
     {
+        public SelectBuilder(Dictionary<Expression, Expression> parameterMap)
+            : base(parameterMap)
+        {}
+        
         public ProjectionExpression UpdateSelect(ProjectionExpression projection, Expression selectExpression)
         {
             //get the lambda expression of the select method

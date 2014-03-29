@@ -56,13 +56,13 @@
   </Choose>
   <ItemGroup>
     <Compile Include="DatabaseTest.cs" />
+    <Compile Include="EntityHelperTest.cs" />
     <Compile Include="LinqTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TableTest.cs" />
     <Compile Include="TestUtils.cs" />
     <Compile Include="CqlFunctionsTest.cs" />
     <Compile Include="MutationTest.cs" />
-    <Compile Include="UnitTest1.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp.Linq\CqlSharp.Linq.csproj">

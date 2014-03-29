@@ -26,6 +26,9 @@ namespace CqlSharp.Linq.Query
     {
         private HashSet<RelationExpression> _relations = new HashSet<RelationExpression>();
 
+        public WhereBuilder(Dictionary<Expression, Expression> parameterMap) : base(parameterMap)
+        {}
+
         public ProjectionExpression BuildWhere(ProjectionExpression projection, Expression whereClause)
         {
             //get the lambda expression of the select method
