@@ -40,6 +40,7 @@ namespace CqlSharp.Linq.Expressions
         SelectCount,
         SelectColumns,
         Projection,
-        SelectAll
+        SelectAll,
+        Database
     }
 }

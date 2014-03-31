@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Linq;
+using System.Linq.Expressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Linq.Test
@@ -24,56 +26,61 @@ namespace CqlSharp.Linq.Test
         [TestMethod]
         public void UnixTimestampOfNow()
         {
-            TestUtils.QueryFunc query =
+            Expression<Func<MyContext, object>> query =
                 context => context.Values.Select(v => CqlFunctions.UnixTimeStampOf(CqlFunctions.Now())).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT unixtimestampof(now()) FROM \"myvalue\";");
+
+            LinqTest.CheckCql(query, "SELECT unixtimestampof(now()) FROM \"myvalue\";");
         }
 
         [TestMethod]
         public void TokenComparison()
         {
-            TestUtils.QueryFunc query =
+            Expression<Func<MyContext, object>> query =
                 context => context.Values.Where(v => CqlFunctions.Token(v.Id) < CqlFunctions.Token(0)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE token(\"id\")<token(0);");
+            
+            LinqTest.CheckCql(query, "SELECT \"id\",\"value\" FROM \"myvalue\" WHERE token(\"id\")<token(0);");
         }
 
         [TestMethod]
         public void SelectTokenAndCompare()
         {
-            TestUtils.QueryFunc query =
+            Expression<Func<MyContext, object>> query =
                 context =>
                 context.Values.Select(v => CqlFunctions.Token(v.Id)).Where(tid => tid < CqlFunctions.Token(0)).ToList();
-            TestUtils.ExecuteQuery(query, "SELECT token(\"id\") FROM \"myvalue\" WHERE token(\"id\")<token(0);");
+            
+            LinqTest.CheckCql(query, "SELECT token(\"id\") FROM \"myvalue\" WHERE token(\"id\")<token(0);");
         }
 
         [TestMethod]
         [ExpectedException(typeof (CqlLinqException))]
         public void CompareWithoutATerm()
         {
-            TestUtils.QueryFunc query =
+            Expression<Func<MyContext, object>> query =
                 context =>
                 context.Values.Select(v => new {v.Id, Token = CqlFunctions.Token(v.Id)}).Where(
                     tid => tid.Token < CqlFunctions.Token(tid.Id)).ToList();
-            TestUtils.ExecuteQuery(query, "illegal");
+            
+            LinqTest.CheckCql(query, "illegal");
         }
 
         [TestMethod]
         [ExpectedException(typeof (CqlLinqException))]
         public void TTLInWhereClause()
         {
-            TestUtils.QueryFunc query =
+            Expression<Func<MyContext, object>> query =
                 context => context.Values.Where(v => CqlFunctions.TTL(v.Value) < 600).ToList();
-            TestUtils.ExecuteQuery(query, "illegal");
+            
+            LinqTest.CheckCql(query, "illegal");
         }
 
         [TestMethod]
         public void WhereThenSelectAllowFiltering()
         {
-            TestUtils.QueryFunc query =
+            Expression<Func<MyContext, object>> query =
                 context =>
                 context.Values.Where(p => p.Value == "hallo daar").Select(r => r.Id).AllowFiltering().ToList();
 
-            TestUtils.ExecuteQuery(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"value\"='hallo daar' ALLOW FILTERING;");
+            LinqTest.CheckCql(query, "SELECT \"id\" FROM \"myvalue\" WHERE \"value\"='hallo daar' ALLOW FILTERING;");
         }
     }
 }

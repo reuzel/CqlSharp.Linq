@@ -26,16 +26,17 @@ namespace CqlSharp.Linq.Query
     {
         private HashSet<RelationExpression> _relations = new HashSet<RelationExpression>();
 
-        public WhereBuilder(Dictionary<Expression, Expression> parameterMap) : base(parameterMap)
-        {}
+        public WhereBuilder(Dictionary<Expression, Expression> parameterMap)
+            : base(parameterMap)
+        { }
 
         public ProjectionExpression BuildWhere(ProjectionExpression projection, Expression whereClause)
         {
             //get the lambda expression of the select method
             var lambda = (LambdaExpression)whereClause.StripQuotes();
 
-            //map the arguments of the lambda expression to the existing projection
-            MapLambdaParameters(lambda, projection.Projection);
+            //map the source argument of the lambda expression to the existing projection (the projection is what the where clause queries)
+            Map.Add(lambda.Parameters[0], projection.Projection);
 
             if (projection.Select.WhereClause != null)
                 _relations = new HashSet<RelationExpression>(projection.Select.WhereClause);

@@ -25,8 +25,8 @@ namespace CqlSharp.Linq.Query
     {
         public SelectBuilder(Dictionary<Expression, Expression> parameterMap)
             : base(parameterMap)
-        {}
-        
+        { }
+
         public ProjectionExpression UpdateSelect(ProjectionExpression projection, Expression selectExpression)
         {
             //get the lambda expression of the select method
@@ -36,8 +36,8 @@ namespace CqlSharp.Linq.Query
             if (lambda.IsIdentityLambda())
                 return projection;
 
-            //map the arguments of the lambda expression to the existing projection
-            MapLambdaParameters(lambda, projection.Projection);
+            //map the source argument of the lambda expression to the existing projection
+            Map.Add(lambda.Parameters[0], projection.Projection);
 
             //get the new projection
             var newProjection = Visit(lambda.Body);

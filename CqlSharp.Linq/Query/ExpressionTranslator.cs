@@ -18,19 +18,60 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace CqlSharp.Linq.Query
 {
     /// <summary>
     ///   Translates a Linq Expression tree into a Cql expression tree
     /// </summary>
-    internal class ExpressionTranslator : CqlExpressionVisitor
+    internal class ExpressionTranslator : BuilderBase
     {
-        private readonly Dictionary<Expression, Expression> _parameterMap =  new Dictionary<Expression, Expression>(); 
-        
+        public ExpressionTranslator()
+            : base(new Dictionary<Expression, Expression>())
+        {
+
+        }
+
         public ProjectionExpression Translate(Expression expression)
         {
-            return (ProjectionExpression)Visit(expression);
+            var translation = Visit(expression);
+            return (ProjectionExpression)translation;
+        }
+
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            var lamda = (LambdaExpression)node.StripQuotes();
+
+            Map.Add(lamda.Parameters[0], new DatabaseExpression(lamda.Parameters[0].Type));
+            for (int i = 1; i < lamda.Parameters.Count; i++)
+                Map.Add(lamda.Parameters[i], new TermExpression(lamda.Parameters[i], i - 1));
+
+            return Visit(lamda.Body);
+        }
+
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            //replace parameter with corresponding projection if known
+            Expression projection;
+            if (Map.TryGetValue(node, out projection))
+                return projection;
+
+            return node;
+        }
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            var source = Visit(node.Expression) as DatabaseExpression;
+            var tableType = node.Member is FieldInfo
+                           ? ((FieldInfo)node.Member).FieldType
+                           : ((PropertyInfo)node.Member).PropertyType;
+
+            if (!tableType.Implements(typeof(ICqlTable)))
+                throw new CqlLinqException(string.Format("Accesssed member {0} is not a table", node.Member.Name));
+
+            var table = (ICqlTable)Activator.CreateInstance(tableType, true);
+            return CreateTableProjection(table);
         }
 
         protected override Expression VisitConstant(ConstantExpression constant)
@@ -76,15 +117,25 @@ namespace CqlSharp.Linq.Query
             return new ProjectionExpression(selectStmt, projection, null, true, null, null);
         }
 
-        protected override Expression VisitLambda<T>(Expression<T> node)
-        {
-            var lamda = (LambdaExpression)node.StripQuotes();
 
-            return base.VisitLambda<T>(node);
-        }
 
         protected override Expression VisitMethodCall(MethodCallExpression call)
         {
+            if (call.Method.DeclaringType == typeof(CqlContext))
+            {
+                switch (call.Method.Name)
+                {
+                    case "GetTable":
+                        {
+                            var entityType = call.Method.GetGenericArguments()[0];
+                            var tableType = typeof(CqlTable<>).MakeGenericType(entityType);
+
+                            var table = (ICqlTable)Activator.CreateInstance(tableType, true);
+                            return CreateTableProjection(table);
+                        }
+
+                }
+            }
             if (call.Method.DeclaringType == typeof(CqlQueryable))
             {
                 switch (call.Method.Name)
@@ -148,14 +199,20 @@ namespace CqlSharp.Linq.Query
                         }
                 }
             }
-            else if (call.Method.DeclaringType == typeof(Queryable))
+            else if (call.Method.DeclaringType == typeof(Queryable) || call.Method.DeclaringType == typeof(Enumerable))
             {
                 switch (call.Method.Name)
                 {
+                    case "ToList":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+                            return source;
+                        }
+
                     case "Select":
                         {
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
-                            return new SelectBuilder(_parameterMap).UpdateSelect(source, call.Arguments[1]);
+                            return new SelectBuilder(Map).UpdateSelect(source, call.Arguments[1]);
                         }
 
                     case "Where":
@@ -166,7 +223,7 @@ namespace CqlSharp.Linq.Query
                                 throw new CqlLinqException(
                                     "A Where statement may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the Take after the Where statement.");
 
-                            return new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
+                            return new WhereBuilder(Map).BuildWhere(source, call.Arguments[1]);
                         }
 
                     case "Distinct":
@@ -237,7 +294,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "A First statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(Map).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //add limit to return single result
@@ -274,7 +331,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "A Single statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(Map).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //set the limit to min of current limit or 2
@@ -314,7 +371,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "An Any statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(Map).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //add limit to return single result
@@ -345,7 +402,7 @@ namespace CqlSharp.Linq.Query
                                     throw new CqlLinqException(
                                         "A Count statement with a condition may not follow a query that contains a limit on returned results. If you use Take(int) consider moving the condition into a Where clause executed before the Take.");
 
-                                source = new WhereBuilder(_parameterMap).BuildWhere(source, call.Arguments[1]);
+                                source = new WhereBuilder(Map).BuildWhere(source, call.Arguments[1]);
                             }
 
                             //remove the select clause and replace with count(*)
@@ -378,15 +435,13 @@ namespace CqlSharp.Linq.Query
                             bool ascending = call.Method.Name.Equals("OrderBy") ||
                                              call.Method.Name.Equals("ThenBy");
 
-                            return new OrderBuilder(_parameterMap).UpdateOrder(source, call.Arguments[1], ascending);
+                            return new OrderBuilder(Map).UpdateOrder(source, call.Arguments[1], ascending);
                         }
 
-                    default:
-                        throw new CqlLinqException(string.Format("Method {0} is not supported", call.Method));
                 }
             }
 
-            return call;
+            throw new CqlLinqException(string.Format("Method {0} is not supported", call.Method));
         }
     }
 }

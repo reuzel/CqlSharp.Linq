@@ -13,10 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Data;
 using CqlSharp.Linq.Mutations;
+using CqlSharp.Linq.Query;
 using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -124,6 +126,17 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
+        public void CountFourItems()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Count(r => new[] { 1, 2, 3, 4 }.Contains(r.Id));
+
+                Assert.AreEqual(4, value, "Unexpected number of results");
+            }
+        }
+
+        [TestMethod]
         public void WhereContains()
         {
             using (var context = new MyContext(ConnectionString))
@@ -158,7 +171,7 @@ namespace CqlSharp.Linq.Test
         {
             using (var context = new MyContext(ConnectionString))
             {
-                if(context.Database.Connection.State==ConnectionState.Closed)
+                if (context.Database.Connection.State == ConnectionState.Closed)
                     context.Database.Connection.Open();
 
                 if (context.Database.Connection.ServerVersion.CompareTo("2.0.4") < 0)
@@ -167,7 +180,7 @@ namespace CqlSharp.Linq.Test
                     return;
                 }
 
-                var values = context.Values.Where(r => new[] { 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21 }.Contains(r.Id)).WithPageSize(10).ToList();
+                var values = context.Values.Where(r => new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 }.Contains(r.Id)).WithPageSize(10).ToList();
 
                 Assert.AreEqual(21, values.Count, "Unexpected number of results");
                 for (int i = 1; i <= 21; i++)
@@ -226,7 +239,7 @@ namespace CqlSharp.Linq.Test
                 //get entry
                 var entry = context.ChangeTracker.Entry(value);
                 Assert.IsNotNull(entry);
-                
+
                 //change it
                 value.Value = "Hallo daar!";
                 Assert.IsTrue(context.ChangeTracker.DetectChanges());
@@ -558,6 +571,80 @@ namespace CqlSharp.Linq.Test
 
                 //expecting two queries
                 Assert.AreEqual(2, count);
+            }
+        }
+
+        [TestMethod]
+        public void CompileSimpleSelect()
+        {
+            Func<MyContext, MyValue> compiledQuery =
+                CompiledQuery.Compile<MyContext, MyValue>(
+                    (context) => context.Values.First(val => val.Id == 1));
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var first = compiledQuery(context);
+                Assert.IsNotNull(first);
+                Assert.AreEqual(1, first.Id);
+                Assert.AreEqual("Hallo 1", first.Value);
+            }
+        }
+
+        [TestMethod]
+        public void CompileSingleArgument()
+        {
+            Func<MyContext, int, MyValue> compiledQuery =
+                CompiledQuery.Compile<MyContext, int, MyValue>(
+                    (context, id) => context.Values.Single(val => val.Id == id));
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var singleValue = compiledQuery(context, 2);
+                Assert.IsNotNull(singleValue);
+                Assert.AreEqual(2, singleValue.Id);
+                Assert.AreEqual("Hallo 2", singleValue.Value);
+            }
+        }
+
+        [TestMethod]
+        public void CompileAny()
+        {
+            Func<MyContext, int, bool> compiledQuery =
+                CompiledQuery.Compile<MyContext, int, bool>(
+                    (context, id) => context.Values.Any(val => val.Id == id));
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var any = compiledQuery(context, 2);
+                Assert.AreEqual(true, any);
+            }
+        }
+
+        [TestMethod]
+        public void CompileCount()
+        {
+            Func<MyContext, int, int> compiledQuery =
+                CompiledQuery.Compile<MyContext, int, int>(
+                    (context, id) => context.Values.Count(val => val.Id == id));
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var count = compiledQuery(context, 2);
+                Assert.AreEqual(1, count);
+            }
+        }
+
+        [TestMethod]
+        public void CompileLongCount()
+        {
+            Func<MyContext, int, long> compiledQuery =
+                CompiledQuery.Compile<MyContext, int, long>(
+                    (context, id) => context.Values.LongCount(val => val.Id == id));
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var count = compiledQuery(context, 2);
+                Assert.AreEqual(1, count);
             }
         }
     }

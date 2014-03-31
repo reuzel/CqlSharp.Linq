@@ -25,25 +25,28 @@ namespace CqlSharp.Linq.Query
     internal class TrackingReader<TEntity> : IEnumerable<TEntity>, IProjectionReader where TEntity : class, new()
     {
         private readonly CqlContext _context;
-        private QueryPlan _plan;
+        private readonly QueryPlan _plan;
+        private readonly object[] _args;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="plan">The plan.</param>
+        /// <param name="args">The arguments to fill the parameters of the (prepared) query</param>
         /// <exception cref="System.ArgumentNullException">context
         /// or
         /// cql
         /// or
         /// projector</exception>
-        public TrackingReader(CqlContext context, QueryPlan plan)
+        public TrackingReader(CqlContext context, QueryPlan plan, object[] args)
         {
             Debug.Assert(context != null, "Context may not be null");
             Debug.Assert(plan != null, "QueryPlan may not be null");
 
             _context = context;
             _plan = plan;
+            _args = args;
         }
 
         #region IEnumerable<TEntity> Members
@@ -73,6 +76,16 @@ namespace CqlSharp.Linq.Query
 
             if (_plan.PageSize.HasValue)
                 command.PageSize = _plan.PageSize.Value;
+
+            if (_plan.VariableMap.Count > 0)
+            {
+                command.Prepare();
+                for (int i = 0; i < _plan.VariableMap.Count; i++)
+                {
+                    int argumentIndex = _plan.VariableMap[i];
+                    command.Parameters[i].Value = _args[argumentIndex];
+                }
+            }
 
             var projector = (Func<CqlDataReader, TEntity>)_plan.Projector;
 

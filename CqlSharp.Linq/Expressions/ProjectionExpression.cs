@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace CqlSharp.Linq.Expressions
@@ -52,6 +53,11 @@ namespace CqlSharp.Linq.Expressions
         public override ExpressionType NodeType
         {
             get { return (ExpressionType)CqlExpressionType.Projection; }
+        }
+
+        public override System.Type Type
+        {
+            get { return _select.Type; }
         }
 
         public AggregateFunction Aggregator

@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
@@ -28,6 +29,12 @@ namespace CqlSharp.Linq.Query
     {
         private readonly CqlContext _cqlContext;
 
+
+        internal CqlQueryProvider()
+        {
+            _cqlContext = null;
+        }
+
         internal CqlQueryProvider(CqlContext cqlContext)
         {
             _cqlContext = cqlContext;
@@ -36,7 +43,7 @@ namespace CqlSharp.Linq.Query
         private object Execute(Expression expression)
         {
             var queryPlan = CreateQueryPlan(expression);
-            return queryPlan.Execute(_cqlContext);
+            return queryPlan.Execute(_cqlContext, null);
         }
 
         internal QueryPlan CreateQueryPlan(Expression expression)
@@ -49,6 +56,9 @@ namespace CqlSharp.Linq.Query
 
             //generate cql text
             var cql = new CqlTextBuilder().Build(translation.Select);
+
+            //get argument map (map from input arguments to command parameters)
+            List<int> map = new VariableMapBuilder().BuildParameterMap(translation.Select);
 
             //get a projection delegate
             var projector = new ProjectorBuilder().BuildProjector(translation.Projection);
@@ -69,7 +79,7 @@ namespace CqlSharp.Linq.Query
                                  : "<none>"));
 
             //return translation results
-            return new QueryPlan(cql, projector.Compile(), translation.Aggregator, translation.CanTrackChanges, translation.Consistency, translation.PageSize);
+            return new QueryPlan(cql, map, projector.Compile(), translation.Aggregator, translation.CanTrackChanges, translation.Consistency, translation.PageSize);
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)

@@ -13,31 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Linq.Expressions;
+using CqlSharp.Linq.Query;
 using CqlSharp.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Linq.Test
 {
-    internal static class TestUtils
-    {
-        internal static void ExecuteQuery(QueryFunc query, string expectedCql)
-        {
-            string executedCql = string.Empty;
-            using (var context = new MyContext { SkipExecute = true })
-            {
-                context.Database.Log = (cql) => { executedCql = cql; };
-                var result = query(context);
-                Assert.AreEqual(expectedCql, executedCql.TrimEnd());
-            }
-        }
-
-        #region Nested type: QueryFunc
-
-        internal delegate object QueryFunc(MyContext context);
-
-        #endregion
-    }
-
     /// <summary>
     ///   The context used for testing
     /// </summary>

@@ -27,12 +27,32 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class TermExpression : Expression
     {
-        private readonly ReadOnlyDictionary<TermExpression, TermExpression> _dictionaryTerms;
-        private readonly MethodInfo _function;
         private readonly CqlExpressionType _termType;
-        private readonly ReadOnlyCollection<TermExpression> _terms;
         private readonly Type _type;
+
+        //used for variable terms ('?')
+        private readonly ParameterExpression _parameter;
+        private readonly int _order;
+
+        //values in case of a dictionary term
+        private readonly ReadOnlyDictionary<TermExpression, TermExpression> _dictionaryTerms;
+
+        //values for set/list terms and for function arguments
+        private readonly ReadOnlyCollection<TermExpression> _terms;
+
+        //invoked function
+        private readonly MethodInfo _function;
+
+        //value for scalar values
         private readonly object _value;
+
+        public TermExpression(ParameterExpression parameter, int order)
+        {
+            _parameter = parameter;
+            _order = order;
+            _type = parameter.Type;
+            _termType = CqlExpressionType.Variable;
+        }
 
         public TermExpression(Object value)
         {
@@ -52,7 +72,7 @@ namespace CqlSharp.Linq.Expressions
             if (terms == null || terms.Count == 0)
                 throw new CqlLinqException("Empty lists are not allowed");
 
-            _type = typeof (IList<>).MakeGenericType(terms[0].Type);
+            _type = typeof(IList<>).MakeGenericType(terms[0].Type);
             _terms = terms.AsReadOnly();
             _termType = CqlExpressionType.List;
         }
@@ -62,7 +82,7 @@ namespace CqlSharp.Linq.Expressions
             if (terms == null || terms.Count == 0)
                 throw new CqlLinqException("Empty lists are not allowed");
 
-            _type = typeof (ISet<>).MakeGenericType(terms.First().Type);
+            _type = typeof(ISet<>).MakeGenericType(terms.First().Type);
             _terms = terms.ToList().AsReadOnly();
             _termType = CqlExpressionType.Set;
         }
@@ -73,7 +93,7 @@ namespace CqlSharp.Linq.Expressions
                 throw new CqlLinqException("Empty dictionaries are not allowed");
 
             var firstElement = terms.First();
-            _type = typeof (IDictionary<,>).MakeGenericType(firstElement.Key.Type, firstElement.Value.Type);
+            _type = typeof(IDictionary<,>).MakeGenericType(firstElement.Key.Type, firstElement.Value.Type);
             _dictionaryTerms = terms.AsReadOnly();
             _termType = CqlExpressionType.Map;
         }
@@ -90,7 +110,7 @@ namespace CqlSharp.Linq.Expressions
         }
 
         private TermExpression(TermExpression original, IEnumerable<TermExpression> terms,
-                               IDictionary<TermExpression, TermExpression> dictTerms)
+                               IDictionary<TermExpression, TermExpression> dictTerms, ParameterExpression parameter)
         {
             _function = original.Function;
             _termType = original._termType;
@@ -98,16 +118,22 @@ namespace CqlSharp.Linq.Expressions
             _value = original.Value;
             _terms = terms.AsReadOnly();
             _dictionaryTerms = dictTerms.AsReadOnly();
+            _parameter = parameter;
         }
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) _termType; }
+            get { return (ExpressionType)_termType; }
         }
 
         public object Value
         {
             get { return _value; }
+        }
+
+        public ParameterExpression GetParameter()
+        {
+            return _parameter;
         }
 
         public override Type Type
@@ -130,6 +156,11 @@ namespace CqlSharp.Linq.Expressions
             get { return _dictionaryTerms; }
         }
 
+        public int Order
+        {
+            get { return _order; }
+        }
+
         protected override Expression Accept(ExpressionVisitor visitor)
         {
             var type = visitor as CqlExpressionVisitor;
@@ -150,8 +181,17 @@ namespace CqlSharp.Linq.Expressions
             bool changedDictTerms = false;
             var dictTerms = _dictionaryTerms.VisitAll(visitor, out changedDictTerms);
 
-            if (changedTerms || changedDictTerms)
-                return new TermExpression(this, terms, dictTerms);
+            bool changedParameter = false;
+            Expression parameter = null;
+            if (_parameter != null)
+            {
+                parameter = visitor.Visit(_parameter);
+                changedParameter = parameter != _parameter;
+            }
+
+
+            if (changedTerms || changedDictTerms || changedParameter)
+                return new TermExpression(this, terms, dictTerms, (ParameterExpression)parameter);
 
             return this;
         }

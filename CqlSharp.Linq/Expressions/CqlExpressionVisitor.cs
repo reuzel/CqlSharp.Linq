@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Query;
 using System.Linq.Expressions;
 
 namespace CqlSharp.Linq.Expressions
@@ -70,6 +71,16 @@ namespace CqlSharp.Linq.Expressions
         public virtual Expression VisitSelectClause(SelectClauseExpression selectClauseExpression)
         {
             return base.VisitExtension(selectClauseExpression);
+        }
+
+        /// <summary>
+        /// Visits the database expression.
+        /// </summary>
+        /// <param name="databaseExpression">The database expression.</param>
+        /// <returns></returns>
+        public virtual Expression VisitDatabase(DatabaseExpression databaseExpression)
+        {
+            return base.VisitExtension(databaseExpression);
         }
     }
 }

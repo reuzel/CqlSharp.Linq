@@ -43,6 +43,12 @@ namespace CqlSharp.Linq
             _context = context;
         }
 
+        internal CqlTable()
+            : base(new CqlQueryProvider())
+        {
+
+        }
+
         #region ICqlTable Members
 
         /// <summary>
@@ -80,7 +86,7 @@ namespace CqlSharp.Linq
                     return accessor.Keyspace + "." + accessor.Table;
 
                 //if context database has defined a database, use it
-                if (!string.IsNullOrWhiteSpace(_context.Database.Keyspace))
+                if (_context != null && !string.IsNullOrWhiteSpace(_context.Database.Keyspace))
                     return _context.Database.Keyspace + "." + accessor.Table;
 
                 //return the simple table name

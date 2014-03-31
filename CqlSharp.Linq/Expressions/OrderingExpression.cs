@@ -69,7 +69,7 @@ namespace CqlSharp.Linq.Expressions
         {
             var identifier = visitor.Visit(_selector);
 
-            return identifier.Equals(_selector) ? _selector : identifier;
+            return identifier.Equals(_selector) ? this : new OrderingExpression((SelectorExpression)identifier, _order);
         }
     }
 }

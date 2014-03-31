@@ -22,31 +22,18 @@ namespace CqlSharp.Linq.Query
 {
     internal abstract class BuilderBase : CqlExpressionVisitor
     {
-        private readonly Dictionary<Expression, Expression> _map;
+        protected readonly Dictionary<Expression, Expression> Map;
 
         protected BuilderBase(Dictionary<Expression, Expression> parameterMap)
         {
-            _map = parameterMap;
-        }
-
-        /// <summary>
-        ///   Adds mappings between the arguments of the provided lambda and its replacement expressions
-        /// </summary>
-        /// <param name="lambda"> The lambda. </param>
-        /// <param name="replacements"> The replacements. </param>
-        protected void MapLambdaParameters(LambdaExpression lambda, params Expression[] replacements)
-        {
-            //map the lambdas input parameter to the "current" projection, allowing
-            //the parameter to be replaced when it occurs
-            for (int i = 0; i < lambda.Parameters.Count; i++)
-                _map[lambda.Parameters[i]] = replacements[i];
+            Map = parameterMap;
         }
 
         protected override Expression VisitParameter(ParameterExpression node)
         {
             //replace parameter with corresponding projection if known
             Expression projection;
-            if (_map.TryGetValue(node, out projection))
+            if (Map.TryGetValue(node, out projection))
                 return projection;
 
             return node;

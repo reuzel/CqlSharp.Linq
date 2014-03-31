@@ -30,24 +30,27 @@ namespace CqlSharp.Linq.Query
     {
         private readonly CqlContext _context;
         private readonly QueryPlan _plan;
+        private readonly object[] _args;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectionReader{T}" /> class.
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="plan">The plan.</param>
+        /// <param name="args">query paramater values </param>
         /// <exception cref="System.ArgumentNullException">context
         /// or
         /// cql
         /// or
         /// projector</exception>
-        public ProjectionReader(CqlContext context, QueryPlan plan)
+        public ProjectionReader(CqlContext context, QueryPlan plan, Object[] args)
         {
             Debug.Assert(context != null, "Context may not be null");
             Debug.Assert(plan != null, "QueryPlan may not be null");
 
             _context = context;
             _plan = plan;
+            _args = args;
         }
 
         #region IEnumerable<TElement> Members
@@ -77,13 +80,24 @@ namespace CqlSharp.Linq.Query
             if (_plan.PageSize.HasValue)
                 command.PageSize = _plan.PageSize.Value;
 
+            if (_plan.VariableMap.Count > 0)
+            {
+                command.Prepare();
+                for (int i = 0; i < _plan.VariableMap.Count; i++)
+                {
+                    int argumentIndex = _plan.VariableMap[i];
+                    command.Parameters[i].Value = _args[argumentIndex];
+                }
+            }
+
             var projector = (Func<CqlDataReader, TElement>)_plan.Projector;
 
             using (var reader = command.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    yield return projector(reader);
+                    var value = projector(reader);
+                    yield return value;
                 }
             }
         }

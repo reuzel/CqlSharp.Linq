@@ -31,8 +31,8 @@ namespace CqlSharp.Linq.Query
             //get the lambda expression of the select method
             var lambda = (LambdaExpression)keySelectExpression.StripQuotes();
 
-            //map the arguments of the lambda expression to the existing projection
-            MapLambdaParameters(lambda, projection.Projection);
+            //map the source argument of the lambda expression to the existing projection
+            Map.Add(lambda.Parameters[0], projection.Projection);
 
             //get the new projection
             var key = Visit(lambda.Body);

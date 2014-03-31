@@ -15,6 +15,7 @@
 
 using CqlSharp.Linq.Expressions;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace CqlSharp.Linq.Query
@@ -28,16 +29,18 @@ namespace CqlSharp.Linq.Query
         /// Initializes a new instance of the <see cref="QueryPlan" /> class.
         /// </summary>
         /// <param name="cql">The CQL query</param>
+        /// <param name="variableMap">Map of query variables indexes to argument positions</param>
         /// <param name="projector">The projector of the results</param>
         /// <param name="aggregateFunction">The result function.</param>
         /// <param name="canTrackChanges">if set to <c>true</c> [can track changes].</param>
         /// <param name="consistency">The consistency.</param>
         /// <param name="batchSize">Size of the batch.</param>
-        public QueryPlan(string cql, Delegate projector, AggregateFunction aggregateFunction, bool canTrackChanges, CqlConsistency? consistency, int? batchSize)
+        public QueryPlan(string cql, List<int> variableMap, Delegate projector, AggregateFunction aggregateFunction, bool canTrackChanges, CqlConsistency? consistency, int? batchSize)
         {
             Consistency = consistency;
             PageSize = batchSize;
             Cql = cql;
+            VariableMap = variableMap;
             Projector = projector;
             CanTrackChanges = canTrackChanges;
             Aggregator = aggregateFunction;
@@ -66,6 +69,14 @@ namespace CqlSharp.Linq.Query
         public string Cql { get; private set; }
 
         /// <summary>
+        /// Gets the mapping of query variables to function arguments
+        /// </summary>
+        /// <value>
+        /// The variable map.
+        /// </value>
+        public List<int> VariableMap { get; private set; }
+
+        /// <summary>
         ///   Gets the projector translating database results into an object structure
         /// </summary>
         /// <value> The projector. </value>
@@ -82,13 +93,14 @@ namespace CqlSharp.Linq.Query
         /// </summary>
         /// <value> The result function. </value>
         public AggregateFunction Aggregator { get; private set; }
-
+        
         /// <summary>
-        ///   Executes the query plan on the specified context.
+        /// Executes the query plan on the specified context.
         /// </summary>
-        /// <param name="context"> The context. </param>
-        /// <returns> </returns>
-        public object Execute(CqlContext context)
+        /// <param name="context">The context.</param>
+        /// <param name="args">parameter values to be used to run a (prepared) query</param>
+        /// <returns></returns>
+        public object Execute(CqlContext context, object[] args)
         {
             //get the type of the projection
             Type projectionType = Projector.Method.ReturnType;
@@ -115,7 +127,7 @@ namespace CqlSharp.Linq.Query
                 reader = (IProjectionReader)Activator.CreateInstance(
                     typeof(TrackingReader<>).MakeGenericType(projectionType),
                     BindingFlags.Instance | BindingFlags.Public, null,
-                    new object[] { context, this },
+                    new object[] { context, this, args },
                     null);
             }
             else
@@ -123,7 +135,7 @@ namespace CqlSharp.Linq.Query
                 reader = (IProjectionReader)Activator.CreateInstance(
                     typeof(ProjectionReader<>).MakeGenericType(projectionType),
                     BindingFlags.Instance | BindingFlags.Public, null,
-                    new object[] { context, this },
+                    new object[] { context, this, args },
                     null);
             }
 
