@@ -263,7 +263,7 @@ namespace CqlSharp.Linq.Test
         [ExpectedException(typeof (CqlLinqException))]
         public void TakeThenCountWithCondition()
         {
-            Expression<Func<MyContext, object>> query = context => context.Values.Take(100).Count(v => v.Id > 100);
+            Expression<Func<MyContext, int>> query = context => context.Values.Take(100).Count(v => v.Id > 100);
             CheckCql(query, "invalid query");
         }
 

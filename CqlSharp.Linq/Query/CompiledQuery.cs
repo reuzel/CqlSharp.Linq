@@ -23,14 +23,7 @@ namespace CqlSharp.Linq.Query
     public static class CompiledQuery
     {
         private static readonly MethodInfo ExecuteMethod = typeof(QueryPlan).GetMethod("Execute");
-
-        private static readonly MethodInfo ConvertMethod = typeof (Convert).GetMethod("ChangeType",
-                                                                                      new[]
-                                                                                          {
-                                                                                              typeof (object),
-                                                                                              typeof (Type)
-                                                                                          });
-
+        
         private static Delegate BuildCompiledQuery<TResult>(Expression query)
         {
             var lambda = (LambdaExpression)query.StripQuotes();
@@ -50,17 +43,7 @@ namespace CqlSharp.Linq.Query
             var executeCall = Expression.Call(plan, ExecuteMethod, context, parameterArray);
 
             //convert the result to the requested type
-            Expression convert;
-            if(typeof(TResult).Implements(typeof(IConvertible)))
-            {
-                //hack to support count(), convert result object (of type long) to object of type int
-                //assuming that when TResult implements IConvertible, actual result of query will support 
-                //IConvertible
-                convert = Expression.Call(null, ConvertMethod, executeCall, Expression.Constant(typeof (TResult)));
-                convert = Expression.Convert(convert, typeof(TResult));
-            }
-            else
-                convert = Expression.Convert(executeCall, typeof(TResult));
+            Expression convert = Expression.Convert(executeCall, typeof(TResult));
 
             //create and return the compiled query delegate
             var compiledQuery = Expression.Lambda(convert, lambda.Parameters);

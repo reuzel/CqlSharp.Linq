@@ -30,12 +30,12 @@ namespace CqlSharp.Linq.Query
         /// </summary>
         /// <param name="cql">The CQL query</param>
         /// <param name="variableMap">Map of query variables indexes to argument positions</param>
-        /// <param name="projector">The projector of the results</param>
-        /// <param name="aggregateFunction">The result function.</param>
+        /// <param name="projector">The projector of the query datareader to object results</param>
+        /// <param name="aggregatorFunc">The function to aggregates the result objects into a different form.</param>
         /// <param name="canTrackChanges">if set to <c>true</c> [can track changes].</param>
         /// <param name="consistency">The consistency.</param>
         /// <param name="batchSize">Size of the batch.</param>
-        public QueryPlan(string cql, List<int> variableMap, Delegate projector, AggregateFunction aggregateFunction, bool canTrackChanges, CqlConsistency? consistency, int? batchSize)
+        public QueryPlan(string cql, List<int> variableMap, Delegate projector, Func<IEnumerable<object>,object> aggregatorFunc, bool canTrackChanges, CqlConsistency? consistency, int? batchSize)
         {
             Consistency = consistency;
             PageSize = batchSize;
@@ -43,7 +43,7 @@ namespace CqlSharp.Linq.Query
             VariableMap = variableMap;
             Projector = projector;
             CanTrackChanges = canTrackChanges;
-            Aggregator = aggregateFunction;
+            Aggregator = aggregatorFunc;
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace CqlSharp.Linq.Query
         ///   Gets the function that, if set, aggregates the results into the required form
         /// </summary>
         /// <value> The result function. </value>
-        public AggregateFunction Aggregator { get; private set; }
+        public Func<IEnumerable<object>,object> Aggregator { get; private set; }
         
         /// <summary>
         /// Executes the query plan on the specified context.
@@ -104,22 +104,6 @@ namespace CqlSharp.Linq.Query
         {
             //get the type of the projection
             Type projectionType = Projector.Method.ReturnType;
-
-#if DEBUG
-            //return default values of execution is to be skipped
-            if (context.SkipExecute)
-            {
-                //log query
-                context.Database.LogQuery(Cql);
-
-                //return empty array
-                if (Aggregator == null)
-                    return Array.CreateInstance(projectionType, 0);
-
-                //return default value or null
-                return projectionType.DefaultValue();
-            }
-#endif
 
             IProjectionReader reader;
             if (CanTrackChanges && context.TrackChanges)

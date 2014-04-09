@@ -47,9 +47,6 @@ namespace CqlSharp.Linq.PerformanceTest
             const string createTableCql =
                 @"create table linqperftest.myvalue (id int primary key, value text, ignored text);";
 
-            const string truncateTableCql =
-                @"truncate linqperftest.myvalue;";
-
             using (var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();

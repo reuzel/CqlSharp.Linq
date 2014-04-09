@@ -147,11 +147,7 @@ namespace CqlSharp.Linq.Query
         {
             object result = Execute(expression);
 
-            //convert known value types (long to int, etc) via their IConvertible interface
-            if (result is IConvertible)
-                return (TResult)Convert.ChangeType(result, typeof(TResult));
-
-            //cast otherwise
+            //cast object to wished type
             return (TResult)result;
         }
 

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Collections.Generic;
 using CqlSharp.Linq.Mutations;
 using CqlSharp.Linq.Query;
 using CqlSharp.Protocol;
@@ -147,6 +148,21 @@ namespace CqlSharp.Linq.Test
                 for (int i = 1; i <= 4; i++)
                 {
                     Assert.IsTrue(values.Any(v => v.Id == i), "Missing value " + i);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void WhereContainsToDictionary()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var values = context.Values.Where(r => new[] { 1, 2, 3, 4 }.Contains(r.Id)).ToDictionary(v => v.Id);
+
+                Assert.AreEqual(4, values.Count, "Unexpected number of results");
+                for (int i = 1; i <= 4; i++)
+                {
+                    Assert.IsTrue(values.Keys.Any(key => key == i), "Missing value " + i);
                 }
             }
         }
@@ -645,6 +661,28 @@ namespace CqlSharp.Linq.Test
             {
                 var count = compiledQuery(context, 2);
                 Assert.AreEqual(1, count);
+            }
+        }
+
+        [TestMethod]
+        public void CompileWhereContainsToDictionary()
+        {
+            
+                Func<MyContext, IEnumerable<int>, IDictionary<int, MyValue>> compiledQuery =
+                    CompiledQuery.Compile<MyContext, IEnumerable<int>, IDictionary<int, MyValue>>
+                    (
+                        (context, ids) =>  context.Values.Where(r => ids.Contains(r.Id)).ToDictionary(v => v.Id)
+                    );
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var values = compiledQuery(context, new[] {1, 2, 3, 4});
+                    
+                Assert.AreEqual(4, values.Count, "Unexpected number of results");
+                for (int i = 1; i <= 4; i++)
+                {
+                    Assert.IsTrue(values.Keys.Any(key => key == i), "Missing value " + i);
+                }
             }
         }
     }

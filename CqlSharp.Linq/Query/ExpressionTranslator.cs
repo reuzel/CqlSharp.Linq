@@ -27,6 +27,10 @@ namespace CqlSharp.Linq.Query
     /// </summary>
     internal class ExpressionTranslator : BuilderBase
     {
+        private static readonly MethodInfo GenericSelectMethod =  typeof(Enumerable).GetMethods()
+                                                            .Where(m => m.Name == "Select")
+                                                            .First(m => m.GetParameters()[1].ParameterType.GenericTypeArguments.Length == 2);
+
         public ExpressionTranslator()
             : base(new Dictionary<Expression, Expression>())
         {
@@ -114,7 +118,7 @@ namespace CqlSharp.Linq.Query
 
             var projection = Expression.MemberInit(Expression.New(table.EntityType), bindings);
 
-            return new ProjectionExpression(selectStmt, projection, null, true, null, null);
+            return new ProjectionExpression(enumType, selectStmt, projection, null, true, null, null);
         }
 
 
@@ -152,7 +156,8 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.Limit,
                                                                        true);
 
-                            return new ProjectionExpression(@select,
+                            return new ProjectionExpression(source.Type,
+                                                            @select,
                                                             source.Projection,
                                                             source.Aggregator,
                                                             source.CanTrackChanges,
@@ -164,7 +169,8 @@ namespace CqlSharp.Linq.Query
                         {
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
 
-                            return new ProjectionExpression(source.Select,
+                            return new ProjectionExpression(source.Type,
+                                                            source.Select,
                                                             source.Projection,
                                                             source.Aggregator,
                                                             false,
@@ -177,7 +183,8 @@ namespace CqlSharp.Linq.Query
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
                             var size = (int)((ConstantExpression)call.Arguments[1]).Value;
 
-                            return new ProjectionExpression(source.Select,
+                            return new ProjectionExpression(source.Type,
+                                                            source.Select,
                                                             source.Projection,
                                                             source.Aggregator,
                                                             source.CanTrackChanges,
@@ -190,7 +197,8 @@ namespace CqlSharp.Linq.Query
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
                             var consistency = (CqlConsistency)((ConstantExpression)call.Arguments[1]).Value;
 
-                            return new ProjectionExpression(source.Select,
+                            return new ProjectionExpression(source.Type,
+                                                            source.Select,
                                                             source.Projection,
                                                             source.Aggregator,
                                                             source.CanTrackChanges,
@@ -204,9 +212,38 @@ namespace CqlSharp.Linq.Query
                 switch (call.Method.Name)
                 {
                     case "ToList":
+                    case "ToDictionary":
+                    case "ToLookup":
+                    case "ToArray":
                         {
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
-                            return source;
+
+                            //expecting an IQueryable result type, getting the type argument
+                            var sourceEnumType = source.Type.GetGenericArguments()[0];
+
+                            //during execution the resultset is represented as a set of objects
+                            var resultSet = Expression.Parameter(typeof(IEnumerable<object>));
+                            
+                            //cast the object to the IQueryable type, by adding a select statement to the resultset enumeration
+                            //that casts the results to the right type
+                            var castParam = Expression.Parameter(typeof(object));
+                            var castExpr = Expression.Lambda(Expression.Convert(castParam, sourceEnumType), castParam);
+                            var selectMethod = GenericSelectMethod.MakeGenericMethod(typeof(object), sourceEnumType);
+                            var castedResultSet = Expression.Call(null,
+                                                                selectMethod,
+                                                                resultSet,
+                                                                castExpr);
+
+                            //get the argument list, and replace the original source with the casted resultset
+                            var arguments = new List<Expression>(call.Arguments);
+                            arguments[0] = castedResultSet;
+
+                            //call the method (e.g. ToDictionary) and cast result to object
+                            var func = Expression.Convert(Expression.Call(null, call.Method, arguments), typeof(object));
+                            var lambda = Expression.Lambda(func, resultSet);
+                            var aggregator = (Func<IEnumerable<object>, object>) lambda.Compile();
+                            
+                            return new ProjectionExpression(call.Type, source.Select, source.Projection, aggregator, source.CanTrackChanges, source.Consistency, source.PageSize);
                         }
 
                     case "Select":
@@ -247,7 +284,8 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //update projection
-                            return new ProjectionExpression(@select,
+                            return new ProjectionExpression(source.Type,
+                                                            @select,
                                                             source.Projection,
                                                             source.Aggregator,
                                                             false,
@@ -274,7 +312,8 @@ namespace CqlSharp.Linq.Query
                                                                        take,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(@select,
+                            return new ProjectionExpression(source.Type,
+                                                            @select,
                                                             source.Projection,
                                                             source.Aggregator,
                                                             source.CanTrackChanges,
@@ -307,11 +346,12 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //use Enumerable logic for processing result set
-                            AggregateFunction processor = call.Method.Name.Equals("First")
+                            Func<IEnumerable<object>,object> processor = call.Method.Name.Equals("First")
                                                            ? Enumerable.First
-                                                           : (AggregateFunction)Enumerable.FirstOrDefault;
+                                                           : (Func<IEnumerable<object>,object>)Enumerable.FirstOrDefault;
 
-                            return new ProjectionExpression(@select,
+                            return new ProjectionExpression(source.Type,
+                                                            @select,
                                                             source.Projection,
                                                             processor,
                                                             source.CanTrackChanges,
@@ -347,12 +387,13 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //use Enumerable logic for processing result set
-                            AggregateFunction processor = call.Method.Name.Equals("Single")
+                            Func<IEnumerable<object>,object> processor = call.Method.Name.Equals("Single")
                                                            ? Enumerable.Single
-                                                           : (AggregateFunction)Enumerable.SingleOrDefault;
+                                                           : (Func<IEnumerable<object>,object>)Enumerable.SingleOrDefault;
 
 
-                            return new ProjectionExpression(@select,
+                            return new ProjectionExpression(source.Type,
+                                                            @select,
                                                              source.Projection,
                                                              processor,
                                                              source.CanTrackChanges,
@@ -383,7 +424,7 @@ namespace CqlSharp.Linq.Query
                                                                        1,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(@select, source.Projection, enm => enm.Any(), false, source.Consistency, null);
+                            return new ProjectionExpression(typeof(bool), @select, source.Projection, enm => enm.Any(), false, source.Consistency, null);
                         }
 
                     case "Count":
@@ -414,7 +455,14 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.Limit,
                                                                        source.Select.AllowFiltering);
 
-                            return new ProjectionExpression(@select, new SelectorExpression("count", typeof(long)), Enumerable.Single, false, source.Consistency, null);
+                            //use Enumerable logic for processing result set
+                            Func<IEnumerable<object>,object> processor = call.Method.Name.Equals("Count")
+                                                           ? (enm) => Convert.ChangeType(enm.Single(), TypeCode.Int32)
+                                                           : (Func<IEnumerable<object>,object>)Enumerable.Single;
+
+                            var type = call.Method.Name.Equals("Count") ? typeof(int) : typeof(long);
+
+                            return new ProjectionExpression(type, @select, new SelectorExpression("count", typeof(long)), processor, false, source.Consistency, null);
                         }
 
                     case "OrderBy":

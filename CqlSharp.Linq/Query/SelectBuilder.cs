@@ -59,7 +59,8 @@ namespace CqlSharp.Linq.Query
                                                           select.Limit,
                                                           select.AllowFiltering);
 
-            return new ProjectionExpression(newSelect, newProjection, projection.Aggregator, false, projection.Consistency, projection.PageSize);
+            var projectionExpressionType = typeof (IQueryable<>).MakeGenericType(newProjection.Type);
+            return new ProjectionExpression(projectionExpressionType, newSelect, newProjection, projection.Aggregator, false, projection.Consistency, projection.PageSize);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)

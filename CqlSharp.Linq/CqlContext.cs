@@ -68,9 +68,6 @@ namespace CqlSharp.Linq
         /// <param name="initializeTables"> indicates wether the table properties are to be automatically initialized </param>
         protected CqlContext(bool initializeTables = true)
         {
-#if DEBUG
-            SkipExecute = false;
-#endif
             _database = new CqlDatabase(this);
             _tables = new ConcurrentDictionary<Type, ICqlTable>();
 
@@ -107,16 +104,7 @@ namespace CqlSharp.Linq
         {
             get { return _database; }
         }
-
-
-#if DEBUG
-        /// <summary>
-        ///   Gets or sets a value indicating whether execution of the query is skipped. This is for debugging purposes.
-        /// </summary>
-        /// <value> <c>true</c> if execution is skipped; otherwise, <c>false</c> . </value>
-        public bool SkipExecute { get; set; }
-#endif
-
+        
         #region IDisposable Members
 
         /// <summary>

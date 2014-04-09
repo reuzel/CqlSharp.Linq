@@ -169,9 +169,20 @@ namespace CqlSharp.Linq.Query
                     builder.Append(_translations[relation.Term]);
                     break;
                 case CqlExpressionType.In:
-                    builder.Append(" IN (");
-                    builder.Append(string.Join(",", relation.Term.Terms.Select(term => _translations[term])));
-                    builder.Append(")");
+                    builder.Append(" IN ");
+
+                    if(((CqlExpressionType)relation.Term.NodeType == CqlExpressionType.Variable))
+                    {
+                        builder.Append(_translations[relation.Term]);
+                    }
+                    else
+                    {
+                        builder.Append("(");
+                        var elements = relation.Term.Terms.Select(term => _translations[term]);
+                        builder.Append(string.Join(",", elements));
+                        builder.Append(")");
+                    }
+
                     break;
                 default:
                     throw new CqlLinqException("Unexpected relation encountered in where: " +

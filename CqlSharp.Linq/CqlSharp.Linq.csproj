@@ -56,7 +56,6 @@
     <Compile Include="Expressions\ProjectionExpression.cs" />
     <Compile Include="Expressions\ExpressionCollectionExtensions.cs" />
     <Compile Include="Expressions\RelationExpression.cs" />
-    <Compile Include="Expressions\AggregateFunction.cs" />
     <Compile Include="Expressions\SelectClauseExpression.cs" />
     <Compile Include="Expressions\SelectorExpression.cs" />
     <Compile Include="Expressions\SelectStatementExpression.cs" />

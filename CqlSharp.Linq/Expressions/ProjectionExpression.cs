@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -25,13 +26,15 @@ namespace CqlSharp.Linq.Expressions
     {
         private readonly bool _canTrackChanges;
         private readonly Expression _projection;
-        private readonly AggregateFunction _aggregator;
+        private readonly Func<IEnumerable<object>,object> _aggregator;
+        private readonly Type _type;
         private readonly SelectStatementExpression _select;
         private readonly int? _pageSize;
         private readonly CqlConsistency? _consistency;
 
-        public ProjectionExpression(SelectStatementExpression @select, Expression projection, AggregateFunction aggregator, bool canTrackChanges, CqlConsistency? consistency, int? pageSize)
+        public ProjectionExpression(Type type, SelectStatementExpression @select, Expression projection, Func<IEnumerable<object>,object> aggregator, bool canTrackChanges, CqlConsistency? consistency, int? pageSize)
         {
+            _type = type;
             _select = @select;
             _projection = projection;
             _canTrackChanges = canTrackChanges;
@@ -57,10 +60,10 @@ namespace CqlSharp.Linq.Expressions
 
         public override System.Type Type
         {
-            get { return _select.Type; }
+            get { return _type; }
         }
 
-        public AggregateFunction Aggregator
+        public Func<IEnumerable<object>,object> Aggregator
         {
             get { return _aggregator; }
         }
@@ -98,7 +101,7 @@ namespace CqlSharp.Linq.Expressions
             var projector = visitor.Visit(_projection);
 
             if (selector != _select || projector != _projection)
-                return new ProjectionExpression(selector, projector, _aggregator, _canTrackChanges, _consistency, _pageSize);
+                return new ProjectionExpression(_type, selector, projector, _aggregator, _canTrackChanges, _consistency, _pageSize);
 
             return this;
         }
