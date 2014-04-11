@@ -5,6 +5,7 @@ namespace CqlSharp.Linq.PerformanceTest
     /// <summary>
     ///   class representing the values in a table
     /// </summary>
+    [CqlTable("myvalue",Keyspace = "linqperftest")]
     public class MyValue
     {
         [CqlKey]

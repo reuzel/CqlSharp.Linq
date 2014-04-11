@@ -43,12 +43,6 @@ namespace CqlSharp.Linq
         public int? CommandTimeout { get; set; }
 
         /// <summary>
-        ///   Gets or sets the keyspace to use for all queries.
-        /// </summary>
-        /// <value> The keyspace. </value>
-        public string Keyspace { get; set; }
-
-        /// <summary>
         ///   Gets the connection string.
         /// </summary>
         /// <value> The connection string. </value>
@@ -69,6 +63,28 @@ namespace CqlSharp.Linq
                         "Can not change database, as the connection of the context is already opened.");
 
                 _connectionString = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the keyspace (database) used for all queries.
+        /// </summary>
+        /// <value>
+        /// The key space.
+        /// </value>
+        /// <remarks>
+        /// Changing the keyspace can only be done if the underlying connection strategy
+        /// provides exclusive connections.
+        /// </remarks>
+        public string Keyspace
+        {
+            get { return Connection.Database; }
+            set
+            {
+                if (Connection.State != ConnectionState.Open)
+                    Connection.Open();
+
+                Connection.ChangeDatabase(value);
             }
         }
 

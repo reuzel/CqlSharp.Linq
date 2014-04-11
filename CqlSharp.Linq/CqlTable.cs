@@ -85,10 +85,6 @@ namespace CqlSharp.Linq
                 if (accessor.IsKeySpaceSet)
                     return accessor.Keyspace + "." + accessor.Table;
 
-                //if context database has defined a database, use it
-                if (_context != null && !string.IsNullOrWhiteSpace(_context.Database.Keyspace))
-                    return _context.Database.Keyspace + "." + accessor.Table;
-
                 //return the simple table name
                 return accessor.Table;
             }

@@ -12,13 +12,11 @@ namespace CqlSharp.Linq.PerformanceTest
         public MyContext(string connectionString)
             : base(connectionString)
         {
-            Database.Keyspace = "linqperftest";
         }
 
         public MyContext(CqlConnection connection, bool ownsConnection)
             : base(connection, ownsConnection)
         {
-            Database.Keyspace = "linqperftest";
         }
 
         public CqlTable<MyValue> Values { get; set; }
