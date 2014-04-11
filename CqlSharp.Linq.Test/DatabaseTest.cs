@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Collections.Generic;
 using CqlSharp.Linq.Mutations;
 using CqlSharp.Linq.Query;
 using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
@@ -607,6 +607,23 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
+        public void CompileSimpleSelectWithParam()
+        {
+            Func<MyContext, string, string> compiledQuery =
+                CompiledQuery.Compile<MyContext, string, string>(
+                    (context, append) => context.Values.Where(val => val.Id == 1).Select(val => val.Value + append).First());
+
+            using (var context = new MyContext(ConnectionString))
+            {
+                var first = compiledQuery(context, " ook");
+                Assert.IsNotNull(first);
+                Assert.AreEqual("Hallo 1 ook", first);
+            }
+        }
+
+       
+
+        [TestMethod]
         public void CompileSingleArgument()
         {
             Func<MyContext, int, MyValue> compiledQuery =
@@ -665,19 +682,29 @@ namespace CqlSharp.Linq.Test
         }
 
         [TestMethod]
+        [ExpectedException(typeof(CqlLinqException))]
+        public void CompileCountPlusOne()
+        {
+            Func<MyContext, int, int> compiledQuery =
+               CompiledQuery.Compile<MyContext, int, int>(
+                   (context, id) => context.Values.Count(val => val.Id == id) + 1);
+           
+        }
+
+        [TestMethod]
         public void CompileWhereContainsToDictionary()
         {
-            
-                Func<MyContext, IEnumerable<int>, IDictionary<int, MyValue>> compiledQuery =
-                    CompiledQuery.Compile<MyContext, IEnumerable<int>, IDictionary<int, MyValue>>
-                    (
-                        (context, ids) =>  context.Values.Where(r => ids.Contains(r.Id)).ToDictionary(v => v.Id)
-                    );
+
+            Func<MyContext, IEnumerable<int>, IDictionary<int, MyValue>> compiledQuery =
+                CompiledQuery.Compile<MyContext, IEnumerable<int>, IDictionary<int, MyValue>>
+                (
+                    (context, ids) => context.Values.Where(r => ids.Contains(r.Id)).ToDictionary(v => v.Id)
+                );
 
             using (var context = new MyContext(ConnectionString))
             {
-                var values = compiledQuery(context, new[] {1, 2, 3, 4});
-                    
+                var values = compiledQuery(context, new[] { 1, 2, 3, 4 });
+
                 Assert.AreEqual(4, values.Count, "Unexpected number of results");
                 for (int i = 1; i <= 4; i++)
                 {

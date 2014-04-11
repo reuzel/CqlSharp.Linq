@@ -27,7 +27,7 @@ namespace CqlSharp.Linq.Query
     /// </summary>
     internal class ExpressionTranslator : BuilderBase
     {
-        private static readonly MethodInfo GenericSelectMethod =  typeof(Enumerable).GetMethods()
+        private static readonly MethodInfo GenericSelectMethod = typeof(Enumerable).GetMethods()
                                                             .Where(m => m.Name == "Select")
                                                             .First(m => m.GetParameters()[1].ParameterType.GenericTypeArguments.Length == 2);
 
@@ -39,8 +39,13 @@ namespace CqlSharp.Linq.Query
 
         public ProjectionExpression Translate(Expression expression)
         {
-            var translation = Visit(expression);
-            return (ProjectionExpression)translation;
+            var visited = Visit(expression);
+
+            var translation = visited as ProjectionExpression;
+            if (translation == null)
+                throw new CqlLinqException("Unexpected expression encountered: " + visited.NodeType.ToString());
+
+            return translation;
         }
 
         protected override Expression VisitLambda<T>(Expression<T> node)
@@ -49,7 +54,7 @@ namespace CqlSharp.Linq.Query
 
             Map.Add(lamda.Parameters[0], new DatabaseExpression(lamda.Parameters[0].Type));
             for (int i = 1; i < lamda.Parameters.Count; i++)
-                Map.Add(lamda.Parameters[i], new TermExpression(lamda.Parameters[i], i - 1));
+                Map.Add(lamda.Parameters[i], new TermExpression(lamda.Parameters[i].Type, i - 1));
 
             return Visit(lamda.Body);
         }
@@ -223,7 +228,7 @@ namespace CqlSharp.Linq.Query
 
                             //during execution the resultset is represented as a set of objects
                             var resultSet = Expression.Parameter(typeof(IEnumerable<object>));
-                            
+
                             //cast the object to the IQueryable type, by adding a select statement to the resultset enumeration
                             //that casts the results to the right type
                             var castParam = Expression.Parameter(typeof(object));
@@ -241,8 +246,8 @@ namespace CqlSharp.Linq.Query
                             //call the method (e.g. ToDictionary) and cast result to object
                             var func = Expression.Convert(Expression.Call(null, call.Method, arguments), typeof(object));
                             var lambda = Expression.Lambda(func, resultSet);
-                            var aggregator = (Func<IEnumerable<object>, object>) lambda.Compile();
-                            
+                            var aggregator = (Func<IEnumerable<object>, object>)lambda.Compile();
+
                             return new ProjectionExpression(call.Type, source.Select, source.Projection, aggregator, source.CanTrackChanges, source.Consistency, source.PageSize);
                         }
 
@@ -346,9 +351,9 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //use Enumerable logic for processing result set
-                            Func<IEnumerable<object>,object> processor = call.Method.Name.Equals("First")
+                            Func<IEnumerable<object>, object> processor = call.Method.Name.Equals("First")
                                                            ? Enumerable.First
-                                                           : (Func<IEnumerable<object>,object>)Enumerable.FirstOrDefault;
+                                                           : (Func<IEnumerable<object>, object>)Enumerable.FirstOrDefault;
 
                             return new ProjectionExpression(source.Type,
                                                             @select,
@@ -387,9 +392,9 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //use Enumerable logic for processing result set
-                            Func<IEnumerable<object>,object> processor = call.Method.Name.Equals("Single")
+                            Func<IEnumerable<object>, object> processor = call.Method.Name.Equals("Single")
                                                            ? Enumerable.Single
-                                                           : (Func<IEnumerable<object>,object>)Enumerable.SingleOrDefault;
+                                                           : (Func<IEnumerable<object>, object>)Enumerable.SingleOrDefault;
 
 
                             return new ProjectionExpression(source.Type,
@@ -456,9 +461,9 @@ namespace CqlSharp.Linq.Query
                                                                        source.Select.AllowFiltering);
 
                             //use Enumerable logic for processing result set
-                            Func<IEnumerable<object>,object> processor = call.Method.Name.Equals("Count")
+                            Func<IEnumerable<object>, object> processor = call.Method.Name.Equals("Count")
                                                            ? (enm) => Convert.ChangeType(enm.Single(), TypeCode.Int32)
-                                                           : (Func<IEnumerable<object>,object>)Enumerable.Single;
+                                                           : (Func<IEnumerable<object>, object>)Enumerable.Single;
 
                             var type = call.Method.Name.Equals("Count") ? typeof(int) : typeof(long);
 

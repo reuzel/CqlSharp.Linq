@@ -63,7 +63,7 @@
     <Compile Include="TestUtils.cs" />
     <Compile Include="CqlFunctionsTest.cs" />
     <Compile Include="MutationTest.cs" />
-    <Compile Include="UnitTest1.cs" />
+    <Compile Include="CompiledQueryTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp.Linq\CqlSharp.Linq.csproj">

@@ -87,13 +87,13 @@ namespace CqlSharp.Linq.Query
                 }
             }
 
-            var projector = (Func<CqlDataReader, TEntity>)_plan.Projector;
+            var projector = (Func<CqlDataReader, object[], TEntity>)_plan.Projector;
 
             using (var reader = command.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    var value = projector(reader);
+                    var value = projector(reader, _args);
                     yield return tracker.GetOrAttach(value);
                 }
             }

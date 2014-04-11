@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Linq.Expressions;
 using System.Linq.Expressions;
 using System.Reflection;
-using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq.Query
 {
@@ -25,28 +25,37 @@ namespace CqlSharp.Linq.Query
     internal class ProjectorBuilder : CqlExpressionVisitor
     {
         private static readonly ConstructorInfo TokenConstructor =
-            typeof (CqlToken).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null,
+            typeof(CqlToken).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null,
                                              CallingConventions.HasThis,
-                                             new[] {typeof (object)}, null);
+                                             new[] { typeof(object) }, null);
 
-        private static readonly PropertyInfo Indexer = typeof (CqlDataReader).GetProperty("Item",
-                                                                                          new[] {typeof (int)});
+        private static readonly PropertyInfo Indexer = typeof(CqlDataReader).GetProperty("Item",
+                                                                                          new[] { typeof(int) });
 
         private ParameterExpression _reader;
+        private ParameterExpression _arguments;
 
         public LambdaExpression BuildProjector(Expression expression)
         {
-            _reader = Expression.Parameter(typeof (CqlDataReader), "cqlDataReader");
+            _reader = Expression.Parameter(typeof(CqlDataReader), "cqlDataReader");
+            _arguments = Expression.Parameter(typeof(object[]), "arguments");
+
             Expression expr = Visit(expression);
-            return Expression.Lambda(expr, _reader);
+            return Expression.Lambda(expr, _reader, _arguments);
         }
 
+        /// <summary>
+        /// replaces selectors (column references) expressions, with an expression that reads the corresponding
+        /// value from DataReader
+        /// </summary>
+        /// <param name="selector"></param>
+        /// <returns></returns>
         public override Expression VisitSelector(SelectorExpression selector)
         {
-            var value = Expression.MakeIndex(_reader, Indexer, new[] {Expression.Constant(selector.Ordinal)});
+            var value = Expression.MakeIndex(_reader, Indexer, new[] { Expression.Constant(selector.Ordinal) });
 
             //check if it is a token (of which we don't know it's type)
-            if (selector.Type == typeof (CqlToken))
+            if (selector.Type == typeof(CqlToken))
                 return Expression.New(TokenConstructor, value);
 
             //check if it is a value type (and change null values to corresponding default values)
@@ -60,6 +69,20 @@ namespace CqlSharp.Linq.Query
 
             //any other class value
             return Expression.Convert(value, selector.Type);
+        }
+
+        /// <summary>
+        /// Replaces Variable terms with references to the correct argument
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override Expression VisitTerm(TermExpression node)
+        {
+            if (node.NodeType != (ExpressionType)CqlExpressionType.Variable)
+                throw new CqlLinqException("Unexpected type of term in a select clause: " + ((CqlExpressionType)node.NodeType).ToString());
+
+            var argument = Expression.ArrayIndex(_arguments, Expression.Constant(node.Order));
+            return Expression.Convert(argument, node.Type);
         }
     }
 }

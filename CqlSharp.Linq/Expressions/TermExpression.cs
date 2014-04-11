@@ -31,7 +31,6 @@ namespace CqlSharp.Linq.Expressions
         private readonly Type _type;
 
         //used for variable terms ('?')
-        private readonly ParameterExpression _parameter;
         private readonly int _order;
 
         //values in case of a dictionary term
@@ -46,11 +45,10 @@ namespace CqlSharp.Linq.Expressions
         //value for scalar values
         private readonly object _value;
 
-        public TermExpression(ParameterExpression parameter, int order)
+        public TermExpression(Type parameterType, int order)
         {
-            _parameter = parameter;
             _order = order;
-            _type = parameter.Type;
+            _type = parameterType;
             _termType = CqlExpressionType.Variable;
         }
 
@@ -110,7 +108,7 @@ namespace CqlSharp.Linq.Expressions
         }
 
         private TermExpression(TermExpression original, IEnumerable<TermExpression> terms,
-                               IDictionary<TermExpression, TermExpression> dictTerms, ParameterExpression parameter)
+                               IDictionary<TermExpression, TermExpression> dictTerms)
         {
             _function = original.Function;
             _termType = original._termType;
@@ -118,7 +116,6 @@ namespace CqlSharp.Linq.Expressions
             _value = original.Value;
             _terms = terms.AsReadOnly();
             _dictionaryTerms = dictTerms.AsReadOnly();
-            _parameter = parameter;
         }
 
         public override ExpressionType NodeType
@@ -129,11 +126,6 @@ namespace CqlSharp.Linq.Expressions
         public object Value
         {
             get { return _value; }
-        }
-
-        public ParameterExpression GetParameter()
-        {
-            return _parameter;
         }
 
         public override Type Type
@@ -175,23 +167,14 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            bool changedTerms = false;
+            bool changedTerms;
             var terms = _terms.VisitAll(visitor, out changedTerms);
 
-            bool changedDictTerms = false;
+            bool changedDictTerms;
             var dictTerms = _dictionaryTerms.VisitAll(visitor, out changedDictTerms);
 
-            bool changedParameter = false;
-            Expression parameter = null;
-            if (_parameter != null)
-            {
-                parameter = visitor.Visit(_parameter);
-                changedParameter = parameter != _parameter;
-            }
-
-
-            if (changedTerms || changedDictTerms || changedParameter)
-                return new TermExpression(this, terms, dictTerms, (ParameterExpression)parameter);
+            if (changedTerms || changedDictTerms)
+                return new TermExpression(this, terms, dictTerms);
 
             return this;
         }
