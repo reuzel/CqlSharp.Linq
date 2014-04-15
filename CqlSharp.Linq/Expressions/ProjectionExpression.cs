@@ -26,15 +26,13 @@ namespace CqlSharp.Linq.Expressions
     {
         private readonly bool _canTrackChanges;
         private readonly Expression _projection;
-        private readonly Func<IEnumerable<object>,object> _aggregator;
-        private readonly Type _type;
+        private readonly LambdaExpression _aggregator;
         private readonly SelectStatementExpression _select;
         private readonly int? _pageSize;
         private readonly CqlConsistency? _consistency;
 
-        public ProjectionExpression(Type type, SelectStatementExpression @select, Expression projection, Func<IEnumerable<object>,object> aggregator, bool canTrackChanges, CqlConsistency? consistency, int? pageSize)
+        public ProjectionExpression(SelectStatementExpression @select, Expression projection, LambdaExpression aggregator, bool canTrackChanges, CqlConsistency? consistency, int? pageSize)
         {
-            _type = type;
             _select = @select;
             _projection = projection;
             _canTrackChanges = canTrackChanges;
@@ -58,12 +56,12 @@ namespace CqlSharp.Linq.Expressions
             get { return (ExpressionType)CqlExpressionType.Projection; }
         }
 
-        public override System.Type Type
+        public override Type Type
         {
-            get { return _type; }
+            get { return _aggregator != null ? _aggregator.ReturnType : typeof(IEnumerable<>).MakeGenericType(_projection.Type); }
         }
 
-        public Func<IEnumerable<object>,object> Aggregator
+        public LambdaExpression Aggregator
         {
             get { return _aggregator; }
         }
@@ -99,9 +97,10 @@ namespace CqlSharp.Linq.Expressions
         {
             var selector = (SelectStatementExpression)visitor.Visit(_select);
             var projector = visitor.Visit(_projection);
+            var aggregator = visitor.Visit(_aggregator);
 
-            if (selector != _select || projector != _projection)
-                return new ProjectionExpression(_type, selector, projector, _aggregator, _canTrackChanges, _consistency, _pageSize);
+            if (selector != _select || projector != _projection || aggregator != _aggregator)
+                return new ProjectionExpression(selector, projector, _aggregator, _canTrackChanges, _consistency, _pageSize);
 
             return this;
         }

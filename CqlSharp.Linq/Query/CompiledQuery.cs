@@ -22,7 +22,7 @@ namespace CqlSharp.Linq.Query
 {
     public static class CompiledQuery
     {
-        private static readonly MethodInfo ExecuteMethod = typeof(QueryPlan).GetMethod("Execute");
+        private static readonly MethodInfo ExecuteMethod = typeof(IQueryPlan).GetMethod("Execute");
         
         private static Delegate BuildCompiledQuery<TResult>(Expression query)
         {
@@ -39,14 +39,14 @@ namespace CqlSharp.Linq.Query
             var parameters = lambda.Parameters.Skip(1).Select(prm => Expression.Convert(prm, typeof(object)));
             var parameterArray = Expression.NewArrayInit(typeof(object), parameters);
 
+            //get correct executeMethod
+            var method = ExecuteMethod.MakeGenericMethod(typeof (TResult));
+
             //call QueryPlan.Execute with the given parameter set
-            var executeCall = Expression.Call(plan, ExecuteMethod, context, parameterArray);
-
-            //convert the result to the requested type
-            Expression convert = Expression.Convert(executeCall, typeof(TResult));
-
+            var executeCall = Expression.Call(plan, method, context, parameterArray);
+            
             //create and return the compiled query delegate
-            var compiledQuery = Expression.Lambda(convert, lambda.Parameters);
+            var compiledQuery = Expression.Lambda(executeCall, lambda.Parameters);
             return compiledQuery.Compile();
         }
 

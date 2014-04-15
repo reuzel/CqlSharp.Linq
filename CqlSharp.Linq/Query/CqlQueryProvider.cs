@@ -40,13 +40,7 @@ namespace CqlSharp.Linq.Query
             _cqlContext = cqlContext;
         }
 
-        private object Execute(Expression expression)
-        {
-            var queryPlan = CreateQueryPlan(expression);
-            return queryPlan.Execute(_cqlContext, null);
-        }
-
-        internal QueryPlan CreateQueryPlan(Expression expression)
+        internal IQueryPlan CreateQueryPlan(Expression expression)
         {
             //evaluate all partial expressions (get rid of reference noise)
             var cleanedExpression = PartialEvaluator.Evaluate(expression, CanBeEvaluatedLocally);
@@ -63,6 +57,9 @@ namespace CqlSharp.Linq.Query
             //get a projection delegate
             var projector = new ProjectorBuilder().BuildProjector(translation.Projection);
 
+            //get a aggregator delegate
+            var aggregator = translation.Aggregator != null ? translation.Aggregator.Compile() : null;
+
             //output some debug info
             Debug.WriteLine("Original Expression: " + expression);
             Debug.WriteLine("Cleaned Expression: " + cleanedExpression);
@@ -75,11 +72,15 @@ namespace CqlSharp.Linq.Query
             Debug.WriteLine("Generated Projector: " + projector);
             Debug.WriteLine("Result processor: " +
                             (translation.Aggregator != null
-                                 ? translation.Aggregator.GetMethodInfo().ToString()
+                                 ? translation.Aggregator.ToString()
                                  : "<none>"));
 
             //return translation results
-            return new QueryPlan(cql, map, projector.Compile(), translation.Aggregator, translation.CanTrackChanges, translation.Consistency, translation.PageSize);
+            return (IQueryPlan)Activator.CreateInstance(
+                    typeof(QueryPlan<>).MakeGenericType(projector.ReturnType),
+                    BindingFlags.Instance | BindingFlags.Public, null,
+                    new object[] { cql, map, projector.Compile(), aggregator, translation.CanTrackChanges, translation.Consistency, translation.PageSize },
+                    null);
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)
@@ -145,10 +146,8 @@ namespace CqlSharp.Linq.Query
         /// <returns> </returns>
         TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
-            object result = Execute(expression);
-
-            //cast object to wished type
-            return (TResult)result;
+            var queryPlan = CreateQueryPlan(expression);
+            return queryPlan.Execute<TResult>(_cqlContext, null);
         }
 
         /// <summary>
@@ -158,7 +157,8 @@ namespace CqlSharp.Linq.Query
         /// <returns> The value that results from executing the specified query. </returns>
         object IQueryProvider.Execute(Expression expression)
         {
-            return Execute(expression);
+            var queryPlan = CreateQueryPlan(expression);
+            return queryPlan.Execute<object>(_cqlContext, null);
         }
 
         #endregion

@@ -18,7 +18,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
-using System.Linq;
 
 namespace CqlSharp.Linq.Query
 {
@@ -26,10 +25,10 @@ namespace CqlSharp.Linq.Query
     ///   Executes a CQL query and transforms the results into object using a projector
     /// </summary>
     /// <typeparam name="TElement"> type of elements returned from a query </typeparam>
-    internal class ProjectionReader<TElement> : IEnumerable<TElement>, IProjectionReader
+    internal class ProjectionReader<TElement> : IEnumerable<TElement>
     {
         private readonly CqlContext _context;
-        private readonly QueryPlan _plan;
+        private readonly QueryPlan<TElement> _plan;
         private readonly object[] _args;
 
         /// <summary>
@@ -43,7 +42,7 @@ namespace CqlSharp.Linq.Query
         /// cql
         /// or
         /// projector</exception>
-        public ProjectionReader(CqlContext context, QueryPlan plan, Object[] args)
+        public ProjectionReader(CqlContext context, QueryPlan<TElement> plan, Object[] args)
         {
             Debug.Assert(context != null, "Context may not be null");
             Debug.Assert(plan != null, "QueryPlan may not be null");
@@ -59,7 +58,7 @@ namespace CqlSharp.Linq.Query
         ///   Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
-        public IEnumerator<TElement> GetEnumerator()
+        public virtual IEnumerator<TElement> GetEnumerator()
         {
             var connection = _context.Database.Connection;
 
@@ -112,18 +111,6 @@ namespace CqlSharp.Linq.Query
         }
 
         #endregion
-
-        #region IProjectionReader Members
-
-        /// <summary>
-        ///   Returns an enumerator that iterates through the collection, and returns the result as objects
-        /// </summary>
-        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
-        public IEnumerable<object> AsObjectEnumerable()
-        {
-            return this.Select(elem => (object)elem);
-        }
-
-        #endregion
+       
     }
 }

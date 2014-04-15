@@ -59,7 +59,7 @@ namespace CqlSharp.Linq.Query
                                                               select.Limit,
                                                               select.AllowFiltering);
 
-            return new ProjectionExpression(projection.Type, newSelectStmt, projection.Projection,
+            return new ProjectionExpression(newSelectStmt, projection.Projection,
                                             projection.Aggregator, projection.CanTrackChanges, projection.Consistency, projection.PageSize);
         }
 
@@ -98,7 +98,7 @@ namespace CqlSharp.Linq.Query
                     throw new CqlLinqException("TTL and WriteTime functions are not allowed in a where clause");
 
                 bool changed;
-                var args = node.Arguments.VisitAll(this, out changed);
+                var args = node.Arguments.VisitAll(this, out changed).ToList();
 
                 //if all args are selector expressions, then return a composite selector (token, etc.)
                 if (args.All(arg => arg.GetType() == typeof(SelectorExpression)))

@@ -17,7 +17,7 @@ namespace CqlSharp.Linq.Test
                 (context, id, value) => context.Values.Where(v => v.Value == value).First(val => val.Id == id);
 
             var provider = new CqlQueryProvider();
-            var plan = provider.CreateQueryPlan(lambda);
+            var plan = (QueryPlan<MyValue>)provider.CreateQueryPlan(lambda);
 
             Assert.AreEqual(2, plan.VariableMap.Count);
             Assert.AreEqual(plan.VariableMap[0], 1);
@@ -32,7 +32,7 @@ namespace CqlSharp.Linq.Test
                 (context, id, value) => context.Values.Where(v => v.Id < id).First(val => val.Id >= id);
 
             var provider = new CqlQueryProvider();
-            var plan = provider.CreateQueryPlan(lambda);
+            var plan = (QueryPlan<MyValue>)provider.CreateQueryPlan(lambda);
 
             Assert.AreEqual(2, plan.VariableMap.Count);
             Assert.AreEqual(plan.VariableMap[0], 0);

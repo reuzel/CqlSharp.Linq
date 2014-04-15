@@ -50,7 +50,7 @@ namespace CqlSharp.Linq.Query
             IEnumerable<SelectorExpression> columns = new ColumnFinder().FindColumns(newProjection);
 
             SelectStatementExpression select = projection.Select;
-            var newSelect = new SelectStatementExpression(select.Type,
+            var newSelect = new SelectStatementExpression(typeof(IEnumerable<>).MakeGenericType(newProjection.Type),
                                                           new SelectClauseExpression(columns.ToArray(),
                                                                                      select.SelectClause.Distinct),
                                                           select.TableName,
@@ -58,9 +58,8 @@ namespace CqlSharp.Linq.Query
                                                           select.OrderBy,
                                                           select.Limit,
                                                           select.AllowFiltering);
-
-            var projectionExpressionType = typeof (IQueryable<>).MakeGenericType(newProjection.Type);
-            return new ProjectionExpression(projectionExpressionType, newSelect, newProjection, projection.Aggregator, false, projection.Consistency, projection.PageSize);
+            
+            return new ProjectionExpression(newSelect, newProjection, projection.Aggregator, false, projection.Consistency, projection.PageSize);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)

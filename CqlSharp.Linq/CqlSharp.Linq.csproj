@@ -77,13 +77,13 @@
     <Compile Include="CqlQueryable.cs" />
     <Compile Include="Query\BuilderBase.cs" />
     <Compile Include="Query\CompiledQuery.cs" />
+    <Compile Include="Query\IQueryPlan.cs" />
     <Compile Include="Query\VariableMapBuilder.cs" />
     <Compile Include="Query\CqlQuery.cs" />
     <Compile Include="Query\CqlQueryProvider.cs" />
     <Compile Include="Query\CqlTextBuilder.cs" />
     <Compile Include="Query\ExpressionExtensions.cs" />
     <Compile Include="Query\ExpressionTranslator.cs" />
-    <Compile Include="Query\IProjectionReader.cs" />
     <Compile Include="Query\OrderBuilder.cs" />
     <Compile Include="Query\PartialEvaluator.cs" />
     <Compile Include="Query\ProjectionReader.cs" />

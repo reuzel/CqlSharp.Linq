@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -23,10 +22,10 @@ namespace CqlSharp.Linq.Query
     /// <summary>
     ///   Container of all logic to execute a Linq query
     /// </summary>
-    internal class QueryPlan
+    internal class QueryPlan<TProjection> : IQueryPlan
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QueryPlan" /> class.
+        /// Initializes a new instance of the <see cref="QueryPlan{TProjection}" /> class.
         /// </summary>
         /// <param name="cql">The CQL query</param>
         /// <param name="variableMap">Map of query variables indexes to argument positions</param>
@@ -35,7 +34,7 @@ namespace CqlSharp.Linq.Query
         /// <param name="canTrackChanges">if set to <c>true</c> [can track changes].</param>
         /// <param name="consistency">The consistency.</param>
         /// <param name="batchSize">Size of the batch.</param>
-        public QueryPlan(string cql, List<int> variableMap, Delegate projector, Func<IEnumerable<object>,object> aggregatorFunc, bool canTrackChanges, CqlConsistency? consistency, int? batchSize)
+        public QueryPlan(string cql, List<int> variableMap, Delegate projector, Delegate aggregatorFunc, bool canTrackChanges, CqlConsistency? consistency, int? batchSize)
         {
             Consistency = consistency;
             PageSize = batchSize;
@@ -92,41 +91,39 @@ namespace CqlSharp.Linq.Query
         ///   Gets the function that, if set, aggregates the results into the required form
         /// </summary>
         /// <value> The result function. </value>
-        public Func<IEnumerable<object>,object> Aggregator { get; private set; }
-        
+        public Delegate Aggregator { get; private set; }
+
         /// <summary>
         /// Executes the query plan on the specified context.
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="args">parameter values to be used to run a (prepared) query</param>
         /// <returns></returns>
-        public object Execute(CqlContext context, object[] args)
+        public TResult Execute<TResult>(CqlContext context, object[] args)
         {
-            //get the type of the projection
-            Type projectionType = Projector.Method.ReturnType;
 
-            IProjectionReader reader;
+            IEnumerable<TProjection> reader;
             if (CanTrackChanges && context.TrackChanges)
             {
-                reader = (IProjectionReader)Activator.CreateInstance(
-                    typeof(TrackingReader<>).MakeGenericType(projectionType),
+                //use reflection to instantiate as class restrictions do not allow this thing to be instantiated directly
+                reader = (IEnumerable<TProjection>)Activator.CreateInstance(
+                    typeof(TrackingReader<>).MakeGenericType(typeof(TProjection)),
                     BindingFlags.Instance | BindingFlags.Public, null,
                     new object[] { context, this, args },
                     null);
             }
             else
             {
-                reader = (IProjectionReader)Activator.CreateInstance(
-                    typeof(ProjectionReader<>).MakeGenericType(projectionType),
-                    BindingFlags.Instance | BindingFlags.Public, null,
-                    new object[] { context, this, args },
-                    null);
+                reader = new ProjectionReader<TProjection>(context, this, args);
             }
 
             if (Aggregator != null)
-                return Aggregator.Invoke(reader.AsObjectEnumerable());
+            {
+                var aggregator = (Func<IEnumerable<TProjection>, TResult>)Aggregator;
+                return aggregator(reader);
+            }
 
-            return reader;
+            return (TResult)reader;
         }
     }
 }

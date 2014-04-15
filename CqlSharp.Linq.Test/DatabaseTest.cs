@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Collections;
 using CqlSharp.Linq.Mutations;
 using CqlSharp.Linq.Query;
 using CqlSharp.Protocol;
@@ -113,6 +114,20 @@ namespace CqlSharp.Linq.Test
             {
                 var value = context.Values.Where(v => v.Id == 1).Select(v => v.Value).First();
                 Assert.AreEqual("Hallo 1", value);
+            }
+        }
+
+
+        [TestMethod]
+        public void WhereThenSelectEnumerable()
+        {
+            using (var context = new MyContext(ConnectionString))
+            {
+                var value = context.Values.Where(v => v.Id == 1).Select(v => v.Value);
+                foreach(var val in (IEnumerable)value)
+                {
+                    Assert.AreEqual("Hallo 1", val);
+                }
             }
         }
 
