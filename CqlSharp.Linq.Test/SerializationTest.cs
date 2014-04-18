@@ -219,7 +219,7 @@ namespace CqlSharp.Linq.Test
         [TestMethod]
         public void SerializeObjectInOutDefaultsTest()
         {
-            var values = new Types() { aInt = 3, aTimeUUID = TimeGuid.Default };
+            var values = new Types { aInt = 3, aTimeUUID = TimeGuid.Default };
 
             using (var context = new SerializationContext())
             {
@@ -387,7 +387,7 @@ namespace CqlSharp.Linq.Test
 
         // ReSharper disable InconsistentNaming
 
-        public class SerializationContext : CqlContext
+        private class SerializationContext : CqlContext
         {
             public SerializationContext()
                 : base(ConnectionString)

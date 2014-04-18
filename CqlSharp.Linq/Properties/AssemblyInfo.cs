@@ -24,9 +24,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("CqlSharp.Linq")]
 [assembly: AssemblyDescription("CQLSharp.Linq - Linq provider for querying Cassandra using CqlSharp")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Joost Reuzel")]
 [assembly: AssemblyProduct("CqlSharp.Linq")]
-[assembly: AssemblyCopyright("Copyright ©  2014")]
+[assembly: AssemblyCopyright("Copyright Joost Reuzel ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -51,9 +51,8 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("0.34.0.0")]
-[assembly: AssemblyFileVersion("0.34.0.0")]
-[assembly: AssemblyInformationalVersion("0.34.0.0-alpha")]
+[assembly: AssemblyVersion("0.36.0.0")]
+[assembly: AssemblyFileVersion("0.36.0.0")]
 
 #if DEBUG
 
