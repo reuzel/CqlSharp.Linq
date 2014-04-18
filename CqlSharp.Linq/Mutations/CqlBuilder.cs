@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Linq;
 using System.Text;
-using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq.Mutations
 {
@@ -99,7 +99,7 @@ namespace CqlSharp.Linq.Mutations
         {
             var deleteSb = new StringBuilder();
             deleteSb.Append("DELETE FROM \"");
-            deleteSb.Append(item.Table.Name.Replace("\"", "\"\""));
+            deleteSb.Append(item.Table.Name.Replace("\"", "\"\"").Replace(".", "\".\""));
             deleteSb.Append("\" WHERE ");
             TranslatePrimaryConditions(deleteSb, item);
             deleteSb.Append(";");
@@ -115,7 +115,7 @@ namespace CqlSharp.Linq.Mutations
         {
             var updateSb = new StringBuilder();
             updateSb.Append("UPDATE \"");
-            updateSb.Append(item.Table.Name.Replace("\"", "\"\""));
+            updateSb.Append(item.Table.Name.Replace("\"", "\"\"").Replace(".", "\".\""));
             updateSb.Append("\" SET ");
             TranslateUpdationIdValPairs(updateSb, item);
             updateSb.Append(" WHERE ");
@@ -170,7 +170,7 @@ namespace CqlSharp.Linq.Mutations
         {
             var insertSb = new StringBuilder();
             insertSb.Append("INSERT INTO \"");
-            insertSb.Append(item.Table.Name.Replace("\"", "\"\""));
+            insertSb.Append(item.Table.Name.Replace("\"", "\"\"").Replace(".", "\".\""));
             insertSb.Append("\" (");
             TranslateInsertionIds(insertSb, item);
             insertSb.Append(")");

@@ -18,7 +18,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
-using CqlSharp.Serialization;
+using System.Text;
 
 namespace CqlSharp.Linq
 {
@@ -38,15 +38,15 @@ namespace CqlSharp.Linq
 
         public static Type FindIEnumerable(Type seqType)
         {
-            if (seqType == null || seqType == typeof (string))
+            if (seqType == null || seqType == typeof(string))
                 return null;
             if (seqType.IsArray)
-                return typeof (IEnumerable<>).MakeGenericType(seqType.GetElementType());
+                return typeof(IEnumerable<>).MakeGenericType(seqType.GetElementType());
             if (seqType.IsGenericType)
             {
                 foreach (Type arg in seqType.GetGenericArguments())
                 {
-                    Type ienum = typeof (IEnumerable<>).MakeGenericType(arg);
+                    Type ienum = typeof(IEnumerable<>).MakeGenericType(arg);
                     if (ienum.IsAssignableFrom(seqType))
                     {
                         return ienum;
@@ -62,7 +62,7 @@ namespace CqlSharp.Linq
                     if (ienum != null) return ienum;
                 }
             }
-            if (seqType.BaseType != null && seqType.BaseType != typeof (object))
+            if (seqType.BaseType != null && seqType.BaseType != typeof(object))
             {
                 return FindIEnumerable(seqType.BaseType);
             }
@@ -124,7 +124,7 @@ namespace CqlSharp.Linq
 
             return true;
         }
-        
+
         /// <summary>
         ///   Translates the object to its Cql string representation.
         /// </summary>
@@ -139,13 +139,18 @@ namespace CqlSharp.Linq
                 case CqlType.Text:
                 case CqlType.Varchar:
                 case CqlType.Ascii:
-                    var str = (string) value;
+                    var str = (string)value;
                     return "'" + str.Replace("'", "''") + "'";
 
+                case CqlType.Inet:
+                    return "'" + value + "'";
+
                 case CqlType.Boolean:
-                    return ((bool) value) ? "true" : "false";
+                    return ((bool)value) ? "true" : "false";
 
                 case CqlType.Decimal:
+                    return value.ToString();
+
                 case CqlType.Double:
                 case CqlType.Float:
                     var culture = CultureInfo.InvariantCulture;
@@ -158,18 +163,79 @@ namespace CqlSharp.Linq
 
                 case CqlType.Timeuuid:
                 case CqlType.Uuid:
-                    return ((Guid) value).ToString("D");
+                    return ((Guid)value).ToString("D");
 
                 case CqlType.Varint:
-                    return ((BigInteger) value).ToString("D");
+                    return ((BigInteger)value).ToString("D");
 
                 case CqlType.Timestamp:
-                    long timestamp = ((DateTime) value).ToTimestamp();
+                    long timestamp = ((DateTime)value).ToTimestamp();
                     return string.Format("{0:D}", timestamp);
 
                 case CqlType.Blob:
-                    return ((byte[]) value).ToHex("0x");
+                    return ((byte[])value).ToHex("0x");
 
+                case CqlType.List:
+                    {
+                        var listType = value.GetType().GetGenericArguments()[0].ToCqlType();
+                        var builder = new StringBuilder();
+                        builder.Append("[");
+                        bool first = true;
+                        foreach (var val in (IEnumerable)value)
+                        {
+                            if (!first)
+                            {
+                                builder.Append(",");
+                            }
+                            first = false;
+                            builder.Append(ToStringValue(val, listType));
+                        }
+                        builder.Append("]");
+                        return builder.ToString();
+                    }
+
+                case CqlType.Set:
+                    {
+                        var setType = value.GetType().GetGenericArguments()[0].ToCqlType();
+                        var builder = new StringBuilder();
+                        builder.Append("{");
+                        bool first = true;
+                        foreach (var val in (IEnumerable)value)
+                        {
+                            if (!first)
+                            {
+                                builder.Append(",");
+                            }
+                            first = false;
+                            builder.Append(ToStringValue(val, setType));
+                        }
+                        builder.Append("}");
+                        return builder.ToString();
+                    }
+
+                case CqlType.Map:
+                    {
+                        var keyType = value.GetType().GetGenericArguments()[0].ToCqlType();
+                        var valType = value.GetType().GetGenericArguments()[1].ToCqlType();
+
+                        var builder = new StringBuilder();
+                        builder.Append("{");
+                        bool first = true;
+                        foreach (DictionaryEntry entry in (IDictionary)value)
+                        {
+                            if (!first)
+                            {
+                                builder.Append(",");
+                            }
+                            first = false;
+
+                            builder.Append(ToStringValue(entry.Key, keyType));
+                            builder.Append(":");
+                            builder.Append(ToStringValue(entry.Value, valType));
+                        }
+                        builder.Append("}");
+                        return builder.ToString();
+                    }
                 default:
                     throw new CqlLinqException("Unable to translate term to a string representation");
             }

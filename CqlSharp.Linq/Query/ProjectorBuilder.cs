@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Linq.Expressions;
+using System;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -52,7 +53,7 @@ namespace CqlSharp.Linq.Query
         /// <returns></returns>
         public override Expression VisitSelector(SelectorExpression selector)
         {
-            Expression value = null;
+            Expression value;
 
             //check if it is a token (of which we don't know it's type)
             if (selector.Type == typeof(CqlToken))
@@ -178,7 +179,15 @@ namespace CqlSharp.Linq.Query
 
             }
 
-
+            //check for null values in case of a Nullable type
+            if (selector.Type.IsGenericType && selector.Type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                value = Expression.Condition(
+                    Expression.Call(_reader, "IsDBNull", null, Expression.Constant(selector.Ordinal)),
+                    Expression.Constant(null, selector.Type),
+                    Expression.Convert(value, selector.Type)
+                    );
+            }
 
             return value;
         }
